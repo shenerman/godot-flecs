@@ -9,7 +9,7 @@ from SCons.Builder import ListEmitter  # [MODIFIED] 新增：注册 emitter 时�
 from methods import print_error, redirect_emitter  # [MODIFIED] 改为直接导入 emitter 本体
 
 
-libname = "EXTENSION-NAME"
+libname = "godot_flecs"
 projectdir = "project"
 
 localEnv = Environment(tools=["default"], PLATFORM="")
