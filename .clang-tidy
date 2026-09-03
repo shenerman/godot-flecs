@@ -1,0 +1,109 @@
+---
+WarningsAsErrors: '*'
+
+HeaderFilterRegex: 'src/.*'
+ExcludeHeaderFilterRegex: 'godot-cpp/.*'
+
+Checks: >-
+  -*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  hicpp-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  clang-diagnostic-*,
+
+  -bugprone-easily-swappable-parameters,
+  -modernize-use-trailing-return-type,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  -portability-avoid-pragma-once,
+  -misc-include-cleaner,
+
+  -cppcoreguidelines-special-member-functions,
+  -hicpp-special-member-functions,
+
+CheckOptions:
+  # ---------- 类型命名（与 Godot 一致，CamelCase 无前缀）----------
+  - key: readability-identifier-naming.AbstractClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+
+  # ---------- 函数与方法 ----------
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassMethodCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMethodCase
+    value: lower_case
+  - key: readability-identifier-naming.PublicMethodCase
+    value: snake_case
+
+  # ---------- 成员变量 ----------
+  - key: readability-identifier-naming.MemberCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: '_'
+  - key: readability-identifier-naming.PublicMemberCase
+    value: lower_case
+
+  # ---------- 变量与参数 ----------
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterIgnoredRegexp
+    value: '^r_[a-z0-9_]*[a-z0-9]$'
+  - key: readability-identifier-naming.ParameterPrefix
+    value: 'p_'
+  - key: readability-identifier-naming.LocalVariableCase
+    value: lower_case
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+
+  # ---------- 常量 ----------
+  - key: readability-identifier-naming.ConstantCase
+    value: lower_case
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.GlobalConstexprVariableCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.ClassConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.ClassConstexprVariableCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.StaticConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: lower_case
+
+  # ---------- 模板与概念 ----------
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateParameterPrefix
+    value: 'T'
+  - key: readability-identifier-naming.ConceptCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConceptPrefix
+    value: 'C'
+
+  # ---------- 其他 ----------
+  - key: modernize-use-override.AllowOverrideAndFinal
+    value: true
+  - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: true
