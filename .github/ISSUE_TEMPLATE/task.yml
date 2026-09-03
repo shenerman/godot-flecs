@@ -1,0 +1,23 @@
+name: Task
+description: A development task or feature (usually tied to a Milestone)
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Task
+      description: |
+        What needs to be done? Reference the Milestone, related issues, and any
+        relevant original source (e.g. ecs_pong main.c) if applicable.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Acceptance criteria
+      description: Concrete, checkable outcomes that define "done".
+      value: |
+        - [ ] 
+        - [ ] 
+  - type: textarea
+    attributes:
+      label: Notes
+      description: Optional — design decisions, alternatives considered, links.
