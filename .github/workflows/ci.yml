@@ -4,9 +4,10 @@
 name: Continuous Integration
 on:
   workflow_call:
-  push:
   pull_request:
+    branches: [main]
   merge_group:
+  workflow_dispatch:
 
 jobs:
   build:
