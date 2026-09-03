@@ -67,16 +67,17 @@ Run the following command to download flecs:
 git submodule update --init --recursive""")
     sys.exit(1)
 
+
 # flecs 的全部构建/消费配置由 SConscript 自包含（通过传入的 env 原地生效）
-libflecs = SConscript("#thirdparty/flecs.SConscript", exports={"env": env})
+# 库节点经 LIBS 注入，这里不再接收返回值
+SConscript("#thirdparty/flecs.SConscript", exports={"env": env})
 
 env.Append(CPPPATH=["src/"])
 
-sources = Glob("src/*.cpp") + [libflecs]
+sources = Glob("src/*.cpp")   # [MODIFIED] libflecs 已改走 LIBS，不再进 source 列表
 
 if env["target"] in ["editor", "template_debug"]:
     try:
-        # [MODIFIED] 生成文件是构建产物，落位 build/gen/，与对象文件同区
         doc_data = env.GodotCPPDocData("build/gen/doc_data.gen.cpp", source=Glob("doc_classes/*.xml"))
 
         sources.append(doc_data)
