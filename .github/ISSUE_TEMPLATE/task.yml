@@ -8,16 +8,31 @@ body:
       description: |
         What needs to be done? Reference the Milestone, related issues, and any
         relevant original source (e.g. ecs_pong main.c) if applicable.
+      placeholder: |
+        Describe the task here, e.g. "Port the MovePaddle system from ecs_pong
+        main.c — see Issue #3 for component definitions."
     validations:
       required: true
+
   - type: textarea
     attributes:
       label: Acceptance criteria
-      description: Concrete, checkable outcomes that define "done".
-      value: |
-        - [ ] 
-        - [ ] 
+      description: |
+        Concrete, checkable outcomes that define "done". Each line must start
+        with "- [ ] " followed by a short testable statement.
+      placeholder: |
+        - [ ] Criterion 1 — e.g. "system runs at fixed physics step without errors"
+        - [ ] Criterion 2 — e.g. "behavior matches ecs_pong original"
+        - [ ] Criterion 3 — e.g. "verified from a clean clone"
+    validations:
+      required: true
+
   - type: textarea
     attributes:
       label: Notes
-      description: Optional — design decisions, alternatives considered, links.
+      description: |
+        Optional — design decisions, alternatives considered, links to
+        reference code or upstream docs.
+      placeholder: |
+        e.g. "Reads Input singleton inside the flecs system; acceptable coupling
+        for this scope. Alternative: Godot-side input polling."
