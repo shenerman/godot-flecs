@@ -6,6 +6,7 @@
 #include <godot_cpp/godot.hpp>
 
 #include "example_class.h"
+#include "flecs_world.h"
 
 using namespace godot;
 
@@ -17,6 +18,7 @@ namespace
 			return;
 		}
 		GDREGISTER_CLASS(ExampleClass);
+		GDREGISTER_CLASS(FlecsWorld)
 	}
 
 	void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
