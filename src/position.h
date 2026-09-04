@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  flecs_world.h                                                         */
+/*  position.h                                                         */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -28,44 +28,18 @@
 /**************************************************************************/
 
 #pragma once
-
-#include <flecs.h>
-#include <godot_cpp/classes/node.hpp>
-#include <optional>
-
-namespace godot {
-
-class FlecsWorld : public Node {
-    GDCLASS(FlecsWorld, Node) //NOLINT
-
-private:
-    // optional 而非直接成员：flecs::world 默认构造会立即创建 C world，
-    // 而 Node 构造发生在编辑器实例化时（_ready 之前）。延迟到 _ready 创建。
-    std::optional<flecs::world> _world;
-
-    int _heartbeat_ticks { 0 };
-    float _test_move_speed_x { 0 };
-    float _test_move_speed_y { 0 };
-
-protected:
-    static void _bind_methods();
-
-    void _spawn_paired_entities();
-    void _on_paired_node_exiting(int64_t p_entity_id);
-
-public:
-    FlecsWorld() = default;
-    ~FlecsWorld() override;
-
-    void _ready() override;
-    void _physics_process(double p_delta) override;
-
-
-    // ── TestMove 调速（暴露给 Godot Inspector / 脚本）──
-    void set_test_move_speed_x(float p_speed);
-    void set_test_move_speed_y(float p_speed);
-    [[nodiscard]] float get_test_move_speed_x() const;
-    [[nodiscard]] float get_test_move_speed_y() const;
+// Position：纯值类型。禁止引入任何 godot-cpp 类型——
+// 组件必须可以在无 Godot 头的环境下编译，这是 ECS 与引擎解耦的底线。
+#include "flecs.h"
+struct Position {
+    float x { 0.0F };
+    float y { 0.0F };
 };
 
-} // namespace godot
+// 反射注册：member() 让 Position 在 flecs 的查询/资源管理器/序列化里可见，
+// 满足验收标准 "shows up in queries/reflection correctly"。
+inline void register_position(flecs::world &p_world) {
+    p_world.component<Position>()
+        .member<float>("x")
+        .member<float>("y");
+}

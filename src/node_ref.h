@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  flecs_world.h                                                         */
+/*  node_ref.h                                                         */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -28,44 +28,19 @@
 /**************************************************************************/
 
 #pragma once
-
-#include <flecs.h>
-#include <godot_cpp/classes/node.hpp>
-#include <optional>
-
-namespace godot {
-
-class FlecsWorld : public Node {
-    GDCLASS(FlecsWorld, Node) //NOLINT
-
-private:
-    // optional 而非直接成员：flecs::world 默认构造会立即创建 C world，
-    // 而 Node 构造发生在编辑器实例化时（_ready 之前）。延迟到 _ready 创建。
-    std::optional<flecs::world> _world;
-
-    int _heartbeat_ticks { 0 };
-    float _test_move_speed_x { 0 };
-    float _test_move_speed_y { 0 };
-
-protected:
-    static void _bind_methods();
-
-    void _spawn_paired_entities();
-    void _on_paired_node_exiting(int64_t p_entity_id);
-
-public:
-    FlecsWorld() = default;
-    ~FlecsWorld() override;
-
-    void _ready() override;
-    void _physics_process(double p_delta) override;
-
-
-    // ── TestMove 调速（暴露给 Godot Inspector / 脚本）──
-    void set_test_move_speed_x(float p_speed);
-    void set_test_move_speed_y(float p_speed);
-    [[nodiscard]] float get_test_move_speed_x() const;
-    [[nodiscard]] float get_test_move_speed_y() const;
+// NodeRef：实体 ↔ 场景节点的映射，也是纯数据（uint64_t，Godot 的实例 ID）。
+// 设计说明（对应 issue 的 lifetime caution）：
+//   - 不存 Node2D*：裸指针在场景重载后悬空且不可检测；
+//   - 存实例 ID：每帧通过 instance_from_id 解引用，失效返回 null，同步系统跳过；
+//   - 配对节点的 tree_exiting 信号会触发 entity.destruct()（见 flecs_world.cpp），
+//     双向清理，防止 flecs 实体跨场景重载持有死 ID。
+#include "flecs.h"
+#include <cstdint>
+struct NodeRef {
+    uint64_t instance_id { 0 };
 };
 
-} // namespace godot
+inline void register_node_ref(flecs::world &p_world) {
+    p_world.component<NodeRef>()
+            .member<uint64_t>("instance_id");
+}
