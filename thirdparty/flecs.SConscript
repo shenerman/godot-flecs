@@ -47,7 +47,7 @@ libflecs = flecs_env.StaticLibrary(FLECS_BUILD + "/flecs", source=[flecs_obj])
 env.Prepend(CPPPATH=[FLECS_DIST])
 
 # 对齐 flecs CMakeLists 静态 target 的 PUBLIC 定义
-env.Append(CPPDEFINES=["flecs_STATIC"])
+env.Append(CPPDEFINES=[("flecs_STATIC", None)])
 
 # 静态库必须走 LIBS 通道：SCons 拒绝静态库出现在 SharedLibrary 的 source 列表。
 # 以节点形式传入，链接命令行直接拿到完整路径，无需 LIBPATH。
