@@ -28,6 +28,7 @@ Checks: >-
 
   -cppcoreguidelines-special-member-functions,
   -hicpp-special-member-functions,
+  -cppcoreguidelines-pro-type-union-access
 
 CheckOptions:
   # ---------- 类型命名（与 Godot 一致，CamelCase 无前缀）----------
@@ -45,8 +46,14 @@ CheckOptions:
     value: lower_case
   - key: readability-identifier-naming.ClassMethodCase
     value: lower_case
+  - key:   readability-identifier-naming.MethodCase
+    value: lower_case        
   - key: readability-identifier-naming.PrivateMethodCase
     value: lower_case
+  - key: readability-identifier-naming.ProtectedMethodCase
+    value: lower_case
+  - key: readability-identifier-naming.ProtectedMethodIgnoredRegexp
+    value: '^_[a-z][a-z0-9_]*$'
   - key: readability-identifier-naming.PublicMethodCase
     value: snake_case
 
