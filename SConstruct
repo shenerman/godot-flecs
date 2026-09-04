@@ -30,7 +30,7 @@ opts = Variables(customs, ARGUMENTS)
 # [MODIFIED] 与 Godot 引擎对齐：opts.Add 位于 Variables() 之后、Update() 之前
 opts.Add(BoolVariable(
     "redirect_build_objects",
-    "Enable redirecting built objects to `bin/obj/` to declutter the repository.",
+    "Enable redirecting built objects to `build` to declutter the repository.",
     True,
 ))
 
@@ -49,21 +49,37 @@ Run the following command to download godot-cpp:
 
 env = SConscript("godot-cpp/SConstruct", {"env": env, "customs": customs})
 
-env.Append(CPPPATH=["src/"])
-
 # [MODIFIED] BEGIN: 参考 Godot 引擎 SConstruct 末尾的 emitter 注册方式，
-# 在 SharedObject 的 emitter 链前插入重定向 emitter，使编译产物进入 bin/obj/。
-# 只 patch SharedObject；SharedLibrary 的目标路径（bin/<platform>/）保持显式声明。
+# 在 SharedObject 的 emitter 链前插入重定向 emitter，使编译产物进入 build/。
+# 只 patch SharedObject；SharedLibrary/StaticLibrary 的目标路径保持显式声明。
+# 必须位于各 SConscript 之前：Clone 共享 Builder 实例，保证其 SharedObject 同走重定向
+# （显式声明的 build/ 路径会被幂等放行）。
 for key in (emitters := env.SharedObject.builder.emitter):
     emitters[key] = ListEmitter([redirect_emitter] + env.Flatten(emitters[key]))
 # [MODIFIED] END
 
-sources = Glob("src/*.cpp")
+FLECS_DIR = "thirdparty/flecs"
+
+if not (os.path.isdir(FLECS_DIR) and os.listdir(FLECS_DIR)):
+    print_error("""flecs is not available within this folder, as Git submodules haven't been initialized.
+Run the following command to download flecs:
+
+git submodule update --init --recursive""")
+    sys.exit(1)
+
+
+# flecs 的全部构建/消费配置由 SConscript 自包含（通过传入的 env 原地生效）
+# 库节点经 LIBS 注入，这里不再接收返回值
+SConscript("#thirdparty/flecs.SConscript", exports={"env": env})
+
+env.Append(CPPPATH=["src/"])
+
+sources = Glob("src/*.cpp")   # [MODIFIED] libflecs 已改走 LIBS，不再进 source 列表
 
 if env["target"] in ["editor", "template_debug"]:
     try:
-        # [MODIFIED] 生成文件是构建产物，从 src/gen/ 移到根目录 gen/，避免污染源码目录
-        doc_data = env.GodotCPPDocData("gen/doc_data.gen.cpp", source=Glob("doc_classes/*.xml"))
+        doc_data = env.GodotCPPDocData("build/gen/doc_data.gen.cpp", source=Glob("doc_classes/*.xml"))
+
         sources.append(doc_data)
     except AttributeError:
         print("Not including class reference as we're targeting a pre-4.3 baseline.")

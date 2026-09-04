@@ -90,7 +90,6 @@ jobs:
           name: godot-cpp-template-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
           path: |
             ${{ github.workspace }}/bin/**
-            !${{ github.workspace }}/bin/obj/**   # [MODIFIED] 排除重定向产生的中间编译产物
 
   # Merges all the build artifacts together into a single godot-cpp-template artifact.
   # If you comment out this step, all the builds will be uploaded individually.

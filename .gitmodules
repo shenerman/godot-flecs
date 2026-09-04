@@ -2,3 +2,6 @@
 	path = godot-cpp
 	url = https://github.com/godotengine/godot-cpp.git
 	branch = 4.5
+[submodule "thirdparty/flecs"]
+	path = thirdparty/flecs
+	url = https://github.com/SanderMertens/flecs
