@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3 uid="uid://cfdbshtu55t7a"]
+
+[ext_resource type="Script" uid="uid://vvwf387btjek" path="res://scripts/manual_trigger.gd" id="1_vfvc6"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_6fcrs"]
+
+[node name="Test2" type="Node3D"]
+script = ExtResource("1_vfvc6")
+
+[node name="FlecsWorld" type="FlecsWorld" parent="."]
+
+[node name="BridgeNode" type="BridgeNode" parent="FlecsWorld"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="FlecsWorld/BridgeNode"]
+mesh = SubResource("BoxMesh_6fcrs")
+
+[node name="FlecsWorld" type="FlecsWorld" parent="FlecsWorld"]
+
+[node name="BridgeNode" type="BridgeNode" parent="FlecsWorld/FlecsWorld"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="FlecsWorld/FlecsWorld/BridgeNode"]
+mesh = SubResource("BoxMesh_6fcrs")
