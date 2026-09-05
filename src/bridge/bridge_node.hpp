@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  flecs_world.h                                                         */
+/*  bridge/bridge_node.h                                                  */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -28,44 +28,32 @@
 /**************************************************************************/
 
 #pragma once
-
 #include <flecs.h>
-#include <godot_cpp/classes/node.hpp>
-#include <optional>
+#include <godot_cpp/classes/node3d.hpp>
 
-namespace godot {
+namespace bridge {
 
-class FlecsWorld : public Node {
-    GDCLASS(FlecsWorld, Node) //NOLINT
-
-private:
-    // optional 而非直接成员：flecs::world 默认构造会立即创建 C world，
-    // 而 Node 构造发生在编辑器实例化时（_ready 之前）。延迟到 _ready 创建。
-    std::optional<flecs::world> _world;
-
-    int _heartbeat_ticks { 0 };
-    float _test_move_speed_x { 0 };
-    float _test_move_speed_y { 0 };
-
-protected:
-    static void _bind_methods();
-
-    void _spawn_paired_entities();
-    void _on_paired_node_exiting(int64_t p_entity_id);
+// 场景侧的配对端点：编辑器里摆在实体出生位置的标记节点。
+// 职责：锁死旋转语义 → 出生导入（G3）→ 建立配对 → 离树终止配对。
+// 配对数据本身在实体的 NodeRef 组件上，本类只管生命周期。
+// 实体生死归逻辑侧：_exit_tree 只摘 NodeRef，不销毁实体。
+class BridgeNode : public godot::Node3D {
+    GDCLASS(BridgeNode, godot::Node3D) // NOLINT
 
 public:
-    FlecsWorld() = default;
-    ~FlecsWorld() override;
-
     void _ready() override;
-    void _physics_process(double p_delta) override;
+    void _enter_tree() override;
+    void _exit_tree() override;
 
+protected:
+    static void _bind_methods() {}
 
-    // ── TestMove 调速（暴露给 Godot Inspector / 脚本）──
-    void set_test_move_speed_x(float p_speed);
-    void set_test_move_speed_y(float p_speed);
-    [[nodiscard]] float get_test_move_speed_x() const;
-    [[nodiscard]] float get_test_move_speed_y() const;
+private:
+    void try_bind();
+
+    flecs::entity _entity{};
+    bool _was_bound = false;
 };
 
-} // namespace godot
+}
+

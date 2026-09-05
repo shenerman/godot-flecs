@@ -1,11 +1,12 @@
-#include "register_types.h"
+#include "register_types.hpp"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
-#include "flecs_world.h"
+#include "flecs_world.hpp"
+#include "bridge/bridge_node.hpp"
 
 using namespace godot;
 
@@ -17,6 +18,7 @@ namespace
 			return;
 		}
 		GDREGISTER_CLASS(FlecsWorld)
+		GDREGISTER_CLASS(bridge::BridgeNode)
 	}
 
 	void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {

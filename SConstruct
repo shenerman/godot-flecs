@@ -74,7 +74,11 @@ SConscript("#thirdparty/flecs.SConscript", exports={"env": env})
 
 env.Append(CPPPATH=["src/"])
 
-sources = Glob("src/*.cpp")   # [MODIFIED] libflecs 已改走 LIBS，不再进 source 列表
+sources = (
+    Glob("src/*.cpp")
+    + Glob("src/bridge/*.cpp")
+    + Glob("src/logic/*.cpp")
+)
 
 if env["target"] in ["editor", "template_debug"]:
     try:

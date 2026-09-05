@@ -25,10 +25,13 @@ Checks: >-
   -readability-function-cognitive-complexity,
   -portability-avoid-pragma-once,
   -misc-include-cleaner,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
 
   -cppcoreguidelines-special-member-functions,
   -hicpp-special-member-functions,
   -cppcoreguidelines-pro-type-union-access
+
 
 CheckOptions:
   # ---------- 类型命名（与 Godot 一致，CamelCase 无前缀）----------

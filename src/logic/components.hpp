@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  flecs_world.cpp                                                       */
+/*  components.hpp                                                        */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -27,47 +27,21 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#include "flecs_world.hpp"
+#pragma once
 
-#include "bridge/sync_transform.hpp"
-#include "logic/components.hpp"
-#include <godot_cpp/classes/engine.hpp>
+#include "flecs.h"
 
-namespace godot {
+namespace logic {
 
-FlecsWorld::~FlecsWorld() {
-    _world.reset();
+struct Position { float x{}, y{}, z{}; };
+struct Rotation { float x{}, y{}, z{}; };
+struct Scale    { float x{1}, y{1}, z{1}; };
+
+inline void register_components(flecs::world& p_w) {
+    p_w.component<Position>();
+    p_w.component<Rotation>();
+    p_w.component<Scale>();
 }
 
-void FlecsWorld::_enter_tree() {
-    if (Engine::get_singleton()->is_editor_hint()) {
-        return;
-    }
-    if (_world) {
-        return;
-    }
-    _world.emplace();
-    logic::register_components(*_world);
-    bridge::register_sync_transform(*_world);
-         
-    // _world->system<bridge::NodeRef>("noderef_sanity")
-    //      .interval(1.0)
-    //      .each([](flecs::entity p_e, bridge::NodeRef& p_ref) {
-    //          const bool invalid = p_ref.node == nullptr;
-    //          if (invalid) {
-    //              godot::UtilityFunctions::push_error(
-    //                  godot::vformat("NodeRef invariant violated: entity %lld has null/dangling node",
-    //                                 (int64_t)p_e.id()));
-    //          }
-    //      });
-
-}
-
-void FlecsWorld::_physics_process(double p_delta) {
-    if (Engine::get_singleton()->is_editor_hint() || !_world) {
-        return;
-    }
-    _world->progress(static_cast<float>(p_delta));
-}
 
 }

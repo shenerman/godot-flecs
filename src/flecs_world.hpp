@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  position.h                                                         */
+/*  flecs_world.h                                                         */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -28,18 +28,33 @@
 /**************************************************************************/
 
 #pragma once
-// Position：纯值类型。禁止引入任何 godot-cpp 类型——
-// 组件必须可以在无 Godot 头的环境下编译，这是 ECS 与引擎解耦的底线。
-#include "flecs.h"
-struct Position {
-    float x { 0.0F };
-    float y { 0.0F };
+#include <flecs.h>
+#include <godot_cpp/classes/node.hpp>
+#include <optional>
+
+namespace godot {
+
+// 逻辑世界的宿主。职责仅三件：
+// 创建/销毁 world、注册同步系统、每物理帧推进。
+// 配对（出生/绑定/解绑）不在这里——由 BridgeNode 自注册。
+class FlecsWorld : public Node {
+    GDCLASS(FlecsWorld, Node) // NOLINT
+
+public:
+    FlecsWorld() = default;
+    ~FlecsWorld() override;
+
+    void _enter_tree() override;
+    void _physics_process(double p_delta) override;
+
+    [[nodiscard]] flecs::world& flecs_world() { return *_world; }
+
+protected:
+    static void _bind_methods() {}
+
+private:
+    // optional 而非直接成员：Node 构造发生在编辑器实例化时，
+    std::optional<flecs::world> _world;
 };
 
-// 反射注册：member() 让 Position 在 flecs 的查询/资源管理器/序列化里可见，
-// 满足验收标准 "shows up in queries/reflection correctly"。
-inline void register_position(flecs::world &p_world) {
-    p_world.component<Position>()
-        .member<float>("x")
-        .member<float>("y");
 }

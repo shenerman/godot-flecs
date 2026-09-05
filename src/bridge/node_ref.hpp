@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  node_ref.h                                                         */
+/*  bridge/node_ref.hpp                                                   */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -28,19 +28,8 @@
 /**************************************************************************/
 
 #pragma once
-// NodeRef：实体 ↔ 场景节点的映射，也是纯数据（uint64_t，Godot 的实例 ID）。
-// 设计说明（对应 issue 的 lifetime caution）：
-//   - 不存 Node2D*：裸指针在场景重载后悬空且不可检测；
-//   - 存实例 ID：每帧通过 instance_from_id 解引用，失效返回 null，同步系统跳过；
-//   - 配对节点的 tree_exiting 信号会触发 entity.destruct()（见 flecs_world.cpp），
-//     双向清理，防止 flecs 实体跨场景重载持有死 ID。
-#include "flecs.h"
-#include <cstdint>
-struct NodeRef {
-    uint64_t instance_id { 0 };
-};
+#include <godot_cpp/classes/node3d.hpp>
 
-inline void register_node_ref(flecs::world &p_world) {
-    p_world.component<NodeRef>()
-            .member<uint64_t>("instance_id");
+namespace bridge {
+struct NodeRef { godot::Node3D* node{}; };
 }
