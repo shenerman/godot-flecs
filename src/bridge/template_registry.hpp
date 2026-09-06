@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  bridge/sync_transform.hpp                                             */
+/*  bridge/template_registry.hpp                                          */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -28,28 +28,30 @@
 /**************************************************************************/
 
 #pragma once
-#include <flecs.h>
 
-#include "logic/components.hpp"
-#include "bridge/node_ref.hpp"
+#include <godot_cpp/classes/node.hpp>
+#include <godot_cpp/classes/packed_scene.hpp>
+
+#include "logic/components.hpp"  // 仅取 TemplateId，无 flecs 依赖
 
 namespace bridge {
 
-inline void register_sync_transform(flecs::world& p_world) {
-    p_world.system<const logic::Position, const logic::Rotation,
-             const logic::Scale, const NodeRef>("SyncTransform")
-        .kind(flecs::PostUpdate)
-        .each([](flecs::entity, const logic::Position& p_pos, const logic::Rotation& p_rot,
-                 const logic::Scale& p_scale, const NodeRef& p_ref) {
-            if (p_ref.node == nullptr) {
-                godot::UtilityFunctions::push_warning(
-                "Entity has no node assigned to it");
-                return; 
-            }
-            p_ref.node->set_position({p_pos.x, p_pos.y, p_pos.z});
-            p_ref.node->set_rotation({p_rot.x, p_rot.y, p_rot.z});
-            p_ref.node->set_scale({p_scale.x, p_scale.y, p_scale.z});
-        });
-}
+// 模板注册表：编辑器配置表 + 只读查询，桥接层里最"哑"的类。
+class TemplateRegistry : public godot::Node {
+    GDCLASS(TemplateRegistry, godot::Node)  // NOLINT
 
-}
+public:
+    void set_templates(const godot::Array &p_v);
+
+    [[nodiscard]] godot::Array get_templates() const;
+
+    [[nodiscard]] godot::PackedScene *find(logic::TemplateId p_id) const;
+
+protected:
+    static void _bind_methods();
+
+private:
+    godot::Array _templates;
+};
+
+}  // namespace bridge

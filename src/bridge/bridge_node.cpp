@@ -28,93 +28,39 @@
 /**************************************************************************/
 
 
-#include "bridge_node.hpp"
-
-#include "flecs_world.hpp"
-#include "logic/components.hpp"
-#include "node_ref.hpp"
+#include "bridge/bridge_node.hpp"
 
 #include <godot_cpp/classes/engine.hpp>
-#include <godot_cpp/variant/utility_functions.hpp>
-
-using namespace godot;
 
 namespace bridge {
 
-void BridgeNode::_ready() {
-    if (Engine::get_singleton()->is_editor_hint()) {
+bool BridgeNode::is_bound() const {
+    return _entity_id != 0;
+}
+
+void BridgeNode::assign_entity(uint64_t p_entity_id) {
+    if (is_bound()) {
+        ERR_PRINT("BridgeNode::assign_entity: already bound, 2a ordering violated");
         return;
     }
-    set_rotation_order(EulerOrder::EULER_ORDER_YXZ);
-
-    try_bind();
-    
+    _entity_id = p_entity_id;
 }
+
 void BridgeNode::_enter_tree() {
-    if (Engine::get_singleton()->is_editor_hint()) {
-        return;   // 编辑器里摆放节点也会触发 _enter_tree，必须挡住
-    }
-    // 不复活条款：曾绑定过的节点重入树，只警告、不重绑。
-    // 视图连接没有复活语义——复活意味着在逻辑侧和场景树之间做数据仲裁，
-    // 这个仲裁没有正确答案，所以宁可脱钩且失败可见。
-    if (_was_bound) {
-        UtilityFunctions::push_warning(
-            "BridgeNode: re-entered tree after binding; node is now detached.");
+    if (godot::Engine::get_singleton()->is_editor_hint()) {
         return;
     }
-    // 首次进树什么都不做：绑定留给 _ready（此时旋转序等还没就绪）
-}
-
-
-void BridgeNode::try_bind() {
-    // 不复活条款：曾绑定过的节点再入树，直接放弃（reparent 会走到这里，
-    // 节点从此脱钩——失败必须可见，不做静默重试）
-    if (_was_bound) {
-        UtilityFunctions::push_warning(
-            "BridgeNode: re-entered tree after binding; node is now detached.");
-        return;
+    if (!is_bound()) {
+        ERR_PRINT("BridgeNode::_enter_tree: unbound BridgeNode entered the tree — "
+                  "assign_entity must be called before add_child");
     }
-
-    flecs::world* w = nullptr;
-    for (Node* p = get_parent(); p != nullptr; p = p->get_parent()) {
-        if (auto* host = Object::cast_to<FlecsWorld>(p)) {
-            w = &host->flecs_world();
-            break;
-        }
-    }
-    
-    if (w == nullptr) {
-        UtilityFunctions::push_error(
-            "BridgeNode: no FlecsWorld ancestor. "
-            "BridgeNode must be placed under a FlecsWorld node.");
-        return;
-    }
-
-    _entity = w->entity();
-
-    Vector3 rot = get_rotation();
-    _entity.set<logic::Position>({ get_position().x, get_position().y, get_position().z });
-    _entity.set<logic::Rotation>({ rot.x, rot.y, rot.z });
-    _entity.set<logic::Scale>({ get_scale().x, get_scale().y, get_scale().z });
-
-    _entity.set<NodeRef>({ this });
-
-    _was_bound = true;
-
-    UtilityFunctions::print(vformat("[bind] entity %d created for %s",
-    (int64_t)_entity.id(), this->get_name()));
 }
 
 void BridgeNode::_exit_tree() {
-    // 终止配对。防御性检查：实体可能已被逻辑侧销毁（M3 预留），或从未绑定成功。
-    // 注意 get 返回指针：用 ->，不是 .
-    if (_entity.is_valid() && _entity.has<NodeRef>()
-        && _entity.get<NodeRef>().node == this) {
-        _entity.remove<NodeRef>();
-        UtilityFunctions::print("[unbind] NodeRef removed");
-    // 实体本身不销毁——它是逻辑侧的对象，生死由逻辑决定（单一权威）
-    }
+    _entity_id = 0;
 }
 
+void BridgeNode::_bind_methods() {
 }
 
+}  // namespace bridge

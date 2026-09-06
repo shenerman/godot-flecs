@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=3 uid="uid://bqrof3gqwxb4a"]
+
+[ext_resource type="PackedScene" uid="uid://dhsga3lhrodrv" path="res://bullet.tscn" id="1_ig7tw"]
+
+[node name="Main" type="Node3D"]
+
+[node name="FlecsWorld" type="FlecsWorld" parent="."]
+template_registry_path = NodePath("../TemplateRegistry")
+
+[node name="TemplateRegistry" type="TemplateRegistry" parent="."]
+templates = [{
+"identity": 1001,
+"scene": ExtResource("1_ig7tw")
+}]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 10)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]

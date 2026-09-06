@@ -27,11 +27,14 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#include "flecs_world.hpp"
+#include "bridge/flecs_world.hpp"
 
-#include "bridge/sync_transform.hpp"
-#include "logic/components.hpp"
 #include <godot_cpp/classes/engine.hpp>
+
+#include "bridge/spawner.hpp"
+#include "bridge/sync_transform.hpp"
+#include "bridge/template_registry.hpp"
+#include "logic/components.hpp"
 
 namespace godot {
 
@@ -46,21 +49,24 @@ void FlecsWorld::_enter_tree() {
     if (_world) {
         return;
     }
+
+    // Registry 解析在系统注册之前——写点报错，不静默
+    auto *registry = godot::Object::cast_to<bridge::TemplateRegistry>(
+        get_node_or_null(_template_registry_path));
+    if (registry == nullptr) {
+        godot::UtilityFunctions::push_error(
+            "FlecsWorld: template_registry_path 未配置或目标不是 TemplateRegistry，"
+            "spawn 通道将不可用");
+    }
+
     _world.emplace();
     logic::register_components(*_world);
     bridge::register_sync_transform(*_world);
-         
-    // _world->system<bridge::NodeRef>("noderef_sanity")
-    //      .interval(1.0)
-    //      .each([](flecs::entity p_e, bridge::NodeRef& p_ref) {
-    //          const bool invalid = p_ref.node == nullptr;
-    //          if (invalid) {
-    //              godot::UtilityFunctions::push_error(
-    //                  godot::vformat("NodeRef invariant violated: entity %lld has null/dangling node",
-    //                                 (int64_t)p_e.id()));
-    //          }
-    //      });
+    logic::register_systems(*_world);
+    bridge::register_spawner(*_world, registry, this);
 
+    _world->set<logic::TestInput>({});
+    _world->get_mut<logic::TestInput>().storm = true;  
 }
 
 void FlecsWorld::_physics_process(double p_delta) {
@@ -70,4 +76,26 @@ void FlecsWorld::_physics_process(double p_delta) {
     _world->progress(static_cast<float>(p_delta));
 }
 
+NodePath FlecsWorld::get_template_registry_path() const {
+    return _template_registry_path;
 }
+
+void FlecsWorld::set_template_registry_path(const NodePath &p_path) {
+    _template_registry_path = p_path;
+}
+
+void FlecsWorld::_bind_methods() {
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("set_template_registry_path", "path"),
+        &FlecsWorld::set_template_registry_path);
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("get_template_registry_path"),
+        &FlecsWorld::get_template_registry_path);
+
+    ADD_PROPERTY(
+        godot::PropertyInfo(godot::Variant::NODE_PATH, "template_registry_path"),
+        "set_template_registry_path", "get_template_registry_path");
+}
+
+}  // namespace godot
+

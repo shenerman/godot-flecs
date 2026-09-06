@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  flecs_world.h                                                         */
+/*  bridge/template_registry.cpp                                          */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -27,34 +27,46 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#pragma once
-#include <flecs.h>
-#include <godot_cpp/classes/node.hpp>
-#include <optional>
+#include "bridge/template_registry.hpp"
 
-namespace godot {
+#include <godot_cpp/core/class_db.hpp>
 
-// 逻辑世界的宿主。职责仅三件：
-// 创建/销毁 world、注册同步系统、每物理帧推进。
-// 配对（出生/绑定/解绑）不在这里——由 BridgeNode 自注册。
-class FlecsWorld : public Node {
-    GDCLASS(FlecsWorld, Node) // NOLINT
+namespace bridge {
 
-public:
-    FlecsWorld() = default;
-    ~FlecsWorld() override;
-
-    void _enter_tree() override;
-    void _physics_process(double p_delta) override;
-
-    [[nodiscard]] flecs::world& flecs_world() { return *_world; }
-
-protected:
-    static void _bind_methods() {}
-
-private:
-    // optional 而非直接成员：Node 构造发生在编辑器实例化时，
-    std::optional<flecs::world> _world;
-};
-
+void TemplateRegistry::set_templates(const godot::Array &p_v) {
+    _templates = p_v;
 }
+
+godot::Array TemplateRegistry::get_templates() const {
+    return _templates;
+}
+
+godot::PackedScene *TemplateRegistry::find(logic::TemplateId p_id) const {
+    for (int i = 0; i < _templates.size(); ++i) {
+        const godot::Dictionary &entry = _templates[i];
+
+        // Variant 里 identity 以 int64 存放（编辑器侧），先去符号再
+        // 对齐到无符号 TemplateId——两次 cast 各有明确含义，不合并
+        if (static_cast<uint64_t>(static_cast<int64_t>(entry["identity"])) == p_id) {
+            // 场景字段若被填错类型，cast_to 返回 nullptr 原样上抛，
+            // 由调用方（spawner）在写点报错——本类不静默也不越权
+            return godot::Object::cast_to<godot::PackedScene>(entry["scene"]);
+        }
+    }
+    return nullptr;
+}
+
+void TemplateRegistry::_bind_methods() {
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("set_templates", "templates"),
+        &TemplateRegistry::set_templates);
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("get_templates"),
+        &TemplateRegistry::get_templates);
+
+    ADD_PROPERTY(
+        godot::PropertyInfo(godot::Variant::ARRAY, "templates"),
+        "set_templates", "get_templates");
+}
+
+}  // namespace bridge

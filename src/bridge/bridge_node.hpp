@@ -28,32 +28,29 @@
 /**************************************************************************/
 
 #pragma once
-#include <flecs.h>
+
+#include <cstdint>
 #include <godot_cpp/classes/node3d.hpp>
 
 namespace bridge {
 
-// 场景侧的配对端点：编辑器里摆在实体出生位置的标记节点。
-// 职责：锁死旋转语义 → 出生导入（G3）→ 建立配对 → 离树终止配对。
-// 配对数据本身在实体的 NodeRef 组件上，本类只管生命周期。
-// 实体生死归逻辑侧：_exit_tree 只摘 NodeRef，不销毁实体。
 class BridgeNode : public godot::Node3D {
-    GDCLASS(BridgeNode, godot::Node3D) // NOLINT
+    GDCLASS(BridgeNode, godot::Node3D)  // NOLINT
 
 public:
-    void _ready() override;
+    [[nodiscard]] bool is_bound() const;
+
+    void assign_entity(uint64_t p_entity_id);
+    
     void _enter_tree() override;
     void _exit_tree() override;
-
+    
 protected:
-    static void _bind_methods() {}
+
+    static void _bind_methods();
 
 private:
-    void try_bind();
-
-    flecs::entity _entity{};
-    bool _was_bound = false;
+    uint64_t _entity_id = 0;
 };
 
-}
-
+}  // namespace bridge
