@@ -45,14 +45,6 @@ struct SpawnRequest {
     std::optional<Scale>    scale;
 };
 
-struct LogicKind {
-    enum Kind : std::uint8_t {
-        bullet,
-        enemy,
-    };
-    Kind value;
-};
-struct EditorPlaced {};
 struct Bullet {}; 
 
 struct Life { float t{};  };
@@ -67,7 +59,6 @@ inline void register_components(flecs::world& p_w) {
     p_w.component<Scale>();
 
     p_w.component<SpawnRequest>();
-    p_w.component<EditorPlaced>();
     p_w.component<Bullet>();
     p_w.component<Life>();
     p_w.component<TestInput>();
