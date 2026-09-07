@@ -27,19 +27,19 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
+/* bridge/flecs_world.hpp */
 #pragma once
 
 #include <flecs.h>
+
 #include <godot_cpp/classes/node.hpp>
 
-namespace godot {
+#include "bridge/template_list.hpp"
 
-// 逻辑世界的宿主。职责仅四件：创建/销毁 world、注册关系清理策略、
-// 解析模板注册表并注册全部系统、每物理帧推进。
-// 节点的出生与回收不在本类——视图实体由 spawner 创建，
-// 节点回收统一走 OnRemove<NodeRef> hook（despawn.cpp）
-class FlecsWorld : public Node {
-    GDCLASS(FlecsWorld, Node) // NOLINT
+namespace bridge {
+
+class FlecsWorld : public godot::Node {
+    GDCLASS(FlecsWorld, godot::Node) // NOLINT
 
 public:
     FlecsWorld() = default;
@@ -49,9 +49,8 @@ public:
     void _physics_process(double p_delta) override;
     void _notification(int p_what);
 
-    // 编辑器接线：指向场景里的 TemplateRegistry 节点
-    [[nodiscard]] NodePath get_template_registry_path() const;
-    void set_template_registry_path(const NodePath &p_path);
+    [[nodiscard]] godot::Ref<TemplateList> get_template_list() const;
+    void set_template_list(const godot::Ref<TemplateList> &p_list);
 
     [[nodiscard]] bool has_world() const { return _world.has_value(); }
     [[nodiscard]] flecs::world &flecs_world() { return *_world; }
@@ -60,10 +59,8 @@ protected:
     static void _bind_methods();
 
 private:
-    // optional 而非直接成员：Node 构造发生在编辑器实例化时，
-    // world 只应在运行时创建
     std::optional<flecs::world> _world;
-    NodePath _template_registry_path;
+    godot::Ref<TemplateList> _template_list;
 };
 
-} // namespace godot
+} // namespace bridge

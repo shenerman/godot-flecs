@@ -39,8 +39,6 @@ namespace bridge {
 
 class TemplateRegistry;
 
-void register_spawner(flecs::world &p_w,
-                      TemplateRegistry *p_registry,
-                      godot::Node *p_view_host);
+void register_spawner(flecs::world &p_w, godot::Node *p_view_host);
 
 }  // namespace bridge

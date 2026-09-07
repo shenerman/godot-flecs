@@ -28,56 +28,54 @@
 /**************************************************************************/
 
 
+/* bridge/flecs_world.cpp */
 #include "bridge/flecs_world.hpp"
 
 #include <godot_cpp/classes/engine.hpp>
 
-#include "bridge/node_ref.hpp"
 #include "bridge/despawn.hpp"
+#include "bridge/node_ref.hpp"
 #include "bridge/spawner.hpp"
 #include "bridge/sync_transform.hpp"
-#include "bridge/template_registry.hpp"
+#include "bridge/template_list.hpp"
+#include "bridge/template_loader.hpp"
 #include "logic/components.hpp"
 
-namespace godot {
+namespace bridge {
 
 FlecsWorld::~FlecsWorld() {
     _world.reset();
 }
 
 void FlecsWorld::_enter_tree() {
-    if (Engine::get_singleton()->is_editor_hint()) {
+    if (godot::Engine::get_singleton()->is_editor_hint()) {
         return;
     }
     if (_world) {
         return;
     }
+
     _world.emplace();
 
-    _world->component<bridge::ViewOf>()
+    _world->component<ViewOf>()
         .add(flecs::OnDeleteTarget, flecs::Delete);
 
-    auto *registry = godot::Object::cast_to<bridge::TemplateRegistry>(
-        get_node_or_null(_template_registry_path));
-    if (registry == nullptr) {
-        godot::UtilityFunctions::push_error(
-            "FlecsWorld: template_registry_path 未配置或目标不是 TemplateRegistry，"
-            "spawn 通道将不可用");
-    } else {
-        bridge::register_spawner(*_world, registry, this);
-    }
+    // 装载流水线：清单 → 模板实体（查重/验场景/验牌全在启动期报错）
+    load_templates(*_world, _template_list);
+
+    register_spawner(*_world, this);
 
     logic::register_components(*_world);
-    bridge::register_sync_transform(*_world);
+    register_sync_transform(*_world);
     logic::register_systems(*_world);
-    bridge::register_despawn(*_world);
+    register_despawn(*_world);
 
     _world->set<logic::TestInput>({});
     _world->get_mut<logic::TestInput>().storm = true;
 }
 
 void FlecsWorld::_physics_process(double p_delta) {
-    if (Engine::get_singleton()->is_editor_hint() || !_world) {
+    if (godot::Engine::get_singleton()->is_editor_hint() || !_world) {
         return;
     }
     _world->progress(static_cast<float>(p_delta));
@@ -89,8 +87,8 @@ void FlecsWorld::_notification(int p_what) {
             return;
         }
         // queue free
-        _world->each<bridge::NodeRef>(
-            [](flecs::entity, bridge::NodeRef &p_ref) {
+        _world->each<NodeRef>(
+            [](flecs::entity, NodeRef &p_ref) {
                 if (p_ref.node != nullptr) {
                     p_ref.node->call("free"); // 退出期同步清理
                     p_ref.node = nullptr;
@@ -99,25 +97,28 @@ void FlecsWorld::_notification(int p_what) {
     }
 }
 
-NodePath FlecsWorld::get_template_registry_path() const {
-    return _template_registry_path;
+void FlecsWorld::set_template_list(const godot::Ref<TemplateList> &p_list) {
+    _template_list = p_list;
 }
 
-void FlecsWorld::set_template_registry_path(const NodePath &p_path) {
-    _template_registry_path = p_path;
+godot::Ref<TemplateList> FlecsWorld::get_template_list() const {
+    return _template_list;
 }
 
 void FlecsWorld::_bind_methods() {
     godot::ClassDB::bind_method(
-        godot::D_METHOD("set_template_registry_path", "path"),
-        &FlecsWorld::set_template_registry_path);
+        godot::D_METHOD("set_template_list", "list"),
+        &FlecsWorld::set_template_list);
     godot::ClassDB::bind_method(
-        godot::D_METHOD("get_template_registry_path"),
-        &FlecsWorld::get_template_registry_path);
+        godot::D_METHOD("get_template_list"),
+        &FlecsWorld::get_template_list);
 
     ADD_PROPERTY(
-        godot::PropertyInfo(godot::Variant::NODE_PATH, "template_registry_path"),
-        "set_template_registry_path", "get_template_registry_path");
+        godot::PropertyInfo(godot::Variant::OBJECT, "template_list",
+                            godot::PropertyHint::PROPERTY_HINT_RESOURCE_TYPE,
+                            "TemplateList"),
+        "set_template_list", "get_template_list");
 }
 
-} // namespace godot
+} // namespace bridge
+

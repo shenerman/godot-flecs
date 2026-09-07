@@ -27,34 +27,31 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-// ============================================================
-// 逻辑系统 —— 只读写组件、声明生灭。
-// 管线内系统自动处于 defer 模式：结构变更入队，
-// progress() 返回前合并完毕（帧契约推论 6）。
-// ============================================================
 #include "components.hpp"
+
 #include <flecs.h>
+
 #include <random>
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include "bridge/despawn.hpp"
 
 namespace logic {
+
 namespace {
 
 float rnd(float p_lo, float p_hi) {
     // 固定种子是刻意的：T5 弹幕验收需要可复现的出生序列
     // NOLINTNEXTLINE(cert-msc51-cpp)
-    static std::mt19937 rng{42U};    // NOLINT(cert-msc32-c, cert-msc51-cpp)
+    static std::mt19937 rng{42U}; // NOLINT(cert-msc32-c, cert-msc51-cpp)
     return std::uniform_real_distribution<float>(p_lo, p_hi)(rng);
 }
 
-}  // namespace
+} // namespace
 
 void register_systems(flecs::world &p_w) {
-
     // 测试 T5：子弹流。请求实体只挂 SpawnRequest——
-    // 标签、寿命等模板数据由 2a 按 TemplateId 配给真正的子弹实体。
+    // 标签、寿命等模板数据由 spawner 按模板句柄配给真正的子弹实体。
     p_w.system<const TestInput>("test_spawn_bullets")
         .kind(flecs::OnUpdate)
         .run([](flecs::iter &p_it) {
@@ -63,50 +60,47 @@ void register_systems(flecs::world &p_w) {
             if (!w.has<TestInput>() || !w.get<TestInput>().storm) {
                 return;
             }
-            
-            for (int k = 0; k < 5; ++k) {
+
+            // 模板句柄：按名字查装载期建好的 prefab 实体。
+            // 名字 = template_list.tres 里 bullet 那条的 template_name，
+            // 与 load_templates 的 set_name() 同源。风暴系统只认名字，
+            // 具体场景/组件全在清单里——换弹种只改 .tres 不改代码
+            flecs::entity tmpl = w.lookup("bullet");
+            if (!tmpl.is_valid()) {
+                // 查不到是配置错误，报一次即可——storm 每帧进来，
+                // 不拦会刷屏。置回 false 等人修好清单再开
+                godot::UtilityFunctions::push_error(
+                    "test_spawn_bullets: 模板 'bullet' 未装载，"
+                    "检查 template_list.tres");
+                w.get_mut<TestInput>().storm = false;
+                return;
+            }
+
+            for (int k = 0; k < 30; ++k) {
                 w.entity()
                     .set<SpawnRequest>({
-                        .identity = BULLET_ID,
+                        .identity = tmpl,
                         .position = Position{
                             rnd(-5.0F, 5.0F),
                             rnd(2.0F, 6.0F),
                             rnd(-5.0F, 5.0F)},
                         .rotation = {},
-                        .scale    = {},
+                        .scale = {},
                     });
             }
         });
-
 
     // 寿命系统：销毁的唯一权威入口——经 bridge::despawn，
     // 先处置视图、后销毁实体，顺序即协议。
     p_w.system<Life>("expire")
         .kind(flecs::OnUpdate)
         .each([](flecs::iter &p_it, size_t p_i, Life &p_life) {
-            // 调试脚手架：只在帧内第一个实体上计数——static 若对所有
-            // 回调累加，频率会随实体数线性放大（storm 下每秒几十次）。
-            // 每帧最多一次 × 每 300 帧输出 ≈ 5 秒一条（物理帧 60Hz）
-            static int s_dbg_frames = 0;
-            const bool dbg_tick = (p_i == 0 && ++s_dbg_frames % 300 == 0);
-
             p_life.t -= p_it.delta_time();
             if (p_life.t <= 0.0F) {
-                if (dbg_tick) { // 快死的这一帧恰好是打印帧：一并说明
-                    godot::UtilityFunctions::print(
-                        "expire: entity despawned, alive was ", p_it.count());
-                }
                 bridge::despawn(p_it.entity(p_i));
-                return;
-            }
-
-            if (dbg_tick) {
-                godot::UtilityFunctions::print(
-                    "expire alive: ", p_it.count(),
-                    " delta: ", p_it.delta_time(),
-                    " remaining: ", p_life.t);
             }
         });
+
 }
 
-}  // namespace logic
+} // namespace logic

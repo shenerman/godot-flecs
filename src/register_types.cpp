@@ -36,7 +36,7 @@
 
 #include "bridge/flecs_world.hpp"
 #include "bridge/bridge_node.hpp"
-#include "bridge/template_registry.hpp"
+#include "bridge/template_list.hpp"
 
 using namespace godot;
 
@@ -47,9 +47,10 @@ namespace
 		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 			return;
 		}
-		GDREGISTER_CLASS(FlecsWorld)
+		GDREGISTER_CLASS(bridge::FlecsWorld)
 		GDREGISTER_CLASS(bridge::BridgeNode)
-		GDREGISTER_CLASS(bridge::TemplateRegistry)
+		GDREGISTER_CLASS(bridge::TemplateEntry)
+		GDREGISTER_CLASS(bridge::TemplateList)
 	}
 
 	void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
