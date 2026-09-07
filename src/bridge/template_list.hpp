@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  bridge/register_types.cpp                                             */
+/*  bridge/template_list.hpp                                              */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -27,49 +27,50 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#include "register_types.hpp"
+#pragma once
 
-#include <gdextension_interface.h>
-#include <godot_cpp/core/class_db.hpp>
-#include <godot_cpp/core/defs.hpp>
-#include <godot_cpp/godot.hpp>
+#include <godot_cpp/classes/packed_scene.hpp>
+#include <godot_cpp/classes/resource.hpp>
 
-#include "bridge/flecs_world.hpp"
-#include "bridge/bridge_node.hpp"
-#include "bridge/template_list.hpp"
+namespace bridge {
 
-using namespace godot;
+struct ViewTemplate {
+    godot::Ref<godot::PackedScene> scene;
+};
 
-namespace
-{
-	void initialize_gdextension_types(ModuleInitializationLevel p_level)
-	{
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-		GDREGISTER_CLASS(bridge::FlecsWorld)
-		GDREGISTER_CLASS(bridge::BridgeNode)
-		GDREGISTER_CLASS(bridge::TemplateEntry)
-		GDREGISTER_CLASS(bridge::TemplateList)
-	}
+// 清单条目：设计师在 Inspector 里逐条编辑
+class TemplateEntry : public godot::Resource {
+    GDCLASS(TemplateEntry, godot::Resource) // NOLINT
 
-	void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-	}
-} // namespace
+public:
+    // 注意不用 set_name/get_name——Resource 自身有同名方法（resource_name）
+    void set_template_name(const godot::String &p_name);
+    [[nodiscard]] godot::String get_template_name() const;
 
-extern "C"
-{
-	// Initialization
-	GDExtensionBool GDE_EXPORT godot_flecs_library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address, GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization)
-	{
-		GDExtensionBinding::InitObject init_obj(p_get_proc_address, p_library, r_initialization);
-		init_obj.register_initializer(initialize_gdextension_types);
-		init_obj.register_terminator(uninitialize_gdextension_types);
-		init_obj.set_minimum_library_initialization_level(MODULE_INITIALIZATION_LEVEL_SCENE);
+    void set_scene(const godot::Ref<godot::PackedScene> &p_scene);
+    [[nodiscard]] godot::Ref<godot::PackedScene> get_scene() const;
 
-		return init_obj.init();
-	}
-}
+protected:
+    static void _bind_methods();
+
+private:
+    godot::String _template_name;
+    godot::Ref<godot::PackedScene> _scene;
+};
+
+// 清单本体：FlecsWorld 导出引用，启动期交给装载器
+class TemplateList : public godot::Resource {
+    GDCLASS(TemplateList, godot::Resource) // NOLINT
+
+public:
+    void set_entries(const godot::TypedArray<bridge::TemplateEntry> &p_entries);
+    [[nodiscard]] godot::TypedArray<bridge::TemplateEntry> get_entries() const;
+
+protected:
+    static void _bind_methods();
+
+private:
+    godot::TypedArray<bridge::TemplateEntry> _entries;
+};
+
+} // namespace bridge

@@ -28,8 +28,25 @@
 /**************************************************************************/
 
 #pragma once
+
+#include <flecs.h>
 #include <godot_cpp/classes/node3d.hpp>
 
 namespace bridge {
-struct NodeRef { godot::Node3D* node{}; };
-}
+
+// 关系 tag：视图实体 ──(ViewOf)──> 产品实体。
+// 边挂在视图上、指向产品（"此视图是某产品的视图"），即：
+//     view.add<ViewOf>(product);
+// sync 热路径用 view.target<ViewOf>() 直读边，O(1)；
+// 产品死亡由 ViewOf 的 (OnDeleteTarget, Delete) 清理策略连带删除
+// 持边视图——无级联、无收割扫描、无回指针
+struct ViewOf {};
+
+// 挂在视图实体上：一行记录 = 一个视图。
+// 连接关系的唯一真源是那条 (ViewOf, product) 边，本组件不再冗余存储
+// 产品句柄（1:N 时同一边型可挂任意多个视图实体）
+struct NodeRef {
+    godot::Node3D *node = nullptr; 
+};
+
+} // namespace bridge

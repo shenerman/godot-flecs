@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://dhsga3lhrodrv"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_rtl8c"]
+
+[node name="BridgeNode" type="BridgeNode"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.2, 0, 0, 0, 0.2, 0, 0, 0, 0.2, 0, 0, 0)
+mesh = SubResource("SphereMesh_rtl8c")
