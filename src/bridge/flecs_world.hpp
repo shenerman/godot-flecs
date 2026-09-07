@@ -32,6 +32,8 @@
 
 #include <flecs.h>
 
+#include <optional>
+
 #include <godot_cpp/classes/node.hpp>
 
 #include "bridge/template_list.hpp"
