@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  bridge/register_types.cpp                                             */
+/*  bridge/flecs_world.h                                                  */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -27,49 +27,40 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#include "register_types.hpp"
+/* bridge/flecs_world.hpp */
+#pragma once
 
-#include <gdextension_interface.h>
-#include <godot_cpp/core/class_db.hpp>
-#include <godot_cpp/core/defs.hpp>
-#include <godot_cpp/godot.hpp>
+#include <flecs.h>
 
-#include "bridge/flecs_world.hpp"
-#include "bridge/bridge_node.hpp"
+#include <godot_cpp/classes/node.hpp>
+
 #include "bridge/template_list.hpp"
 
-using namespace godot;
+namespace bridge {
 
-namespace
-{
-	void initialize_gdextension_types(ModuleInitializationLevel p_level)
-	{
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-		GDREGISTER_CLASS(bridge::FlecsWorld)
-		GDREGISTER_CLASS(bridge::BridgeNode)
-		GDREGISTER_CLASS(bridge::TemplateEntry)
-		GDREGISTER_CLASS(bridge::TemplateList)
-	}
+class FlecsWorld : public godot::Node {
+    GDCLASS(FlecsWorld, godot::Node) // NOLINT
 
-	void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-	}
-} // namespace
+public:
+    FlecsWorld() = default;
+    ~FlecsWorld() override;
 
-extern "C"
-{
-	// Initialization
-	GDExtensionBool GDE_EXPORT godot_flecs_library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address, GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization)
-	{
-		GDExtensionBinding::InitObject init_obj(p_get_proc_address, p_library, r_initialization);
-		init_obj.register_initializer(initialize_gdextension_types);
-		init_obj.register_terminator(uninitialize_gdextension_types);
-		init_obj.set_minimum_library_initialization_level(MODULE_INITIALIZATION_LEVEL_SCENE);
+    void _enter_tree() override;
+    void _physics_process(double p_delta) override;
+    void _notification(int p_what);
 
-		return init_obj.init();
-	}
-}
+    [[nodiscard]] godot::Ref<TemplateList> get_template_list() const;
+    void set_template_list(const godot::Ref<TemplateList> &p_list);
+
+    [[nodiscard]] bool has_world() const { return _world.has_value(); }
+    [[nodiscard]] flecs::world &flecs_world() { return *_world; }
+
+protected:
+    static void _bind_methods();
+
+private:
+    std::optional<flecs::world> _world;
+    godot::Ref<TemplateList> _template_list;
+};
+
+} // namespace bridge

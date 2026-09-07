@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  bridge/register_types.cpp                                             */
+/*  bridge/template_loader.hpp                                            */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -26,50 +26,18 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE      */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
+#pragma once
 
-#include "register_types.hpp"
+#include <flecs.h>
 
-#include <gdextension_interface.h>
-#include <godot_cpp/core/class_db.hpp>
-#include <godot_cpp/core/defs.hpp>
-#include <godot_cpp/godot.hpp>
-
-#include "bridge/flecs_world.hpp"
-#include "bridge/bridge_node.hpp"
 #include "bridge/template_list.hpp"
 
-using namespace godot;
+namespace bridge {
 
-namespace
-{
-	void initialize_gdextension_types(ModuleInitializationLevel p_level)
-	{
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-		GDREGISTER_CLASS(bridge::FlecsWorld)
-		GDREGISTER_CLASS(bridge::BridgeNode)
-		GDREGISTER_CLASS(bridge::TemplateEntry)
-		GDREGISTER_CLASS(bridge::TemplateList)
-	}
+// 装载流水线：清单（设计师域）→ 模板实体（引擎域）的唯一关口。
+// 步骤：查重 → 验场景 → 建 prefab + ViewTemplate → 解析 LogicKind → 验牌。
+// 任何一步失败都是启动期写点报错并跳过该条，不静默、不拖到首次 spawn
+void load_templates(flecs::world &p_w,
+                    const godot::Ref<bridge::TemplateList> &p_list);
 
-	void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-	}
-} // namespace
-
-extern "C"
-{
-	// Initialization
-	GDExtensionBool GDE_EXPORT godot_flecs_library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address, GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization)
-	{
-		GDExtensionBinding::InitObject init_obj(p_get_proc_address, p_library, r_initialization);
-		init_obj.register_initializer(initialize_gdextension_types);
-		init_obj.register_terminator(uninitialize_gdextension_types);
-		init_obj.set_minimum_library_initialization_level(MODULE_INITIALIZATION_LEVEL_SCENE);
-
-		return init_obj.init();
-	}
-}
+} // namespace logic

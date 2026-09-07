@@ -30,6 +30,7 @@
 #pragma once
 
 #include "flecs.h"
+#include <optional>
 
 namespace logic {
 
@@ -37,11 +38,41 @@ struct Position { float x{}, y{}, z{}; };
 struct Rotation { float x{}, y{}, z{}; };
 struct Scale    { float x{1}, y{1}, z{1}; };
 
+struct SpawnRequest {
+    flecs::entity identity;
+    std::optional<Position> position;
+    std::optional<Rotation> rotation;
+    std::optional<Scale>    scale;
+};
+
+struct LogicKind {
+    enum Kind : std::uint8_t {
+        bullet,
+        enemy,
+    };
+    Kind value;
+};
+struct EditorPlaced {};
+struct Bullet {}; 
+
+struct Life { float t{};  };
+
+struct TestInput {
+    bool storm = false;
+};
+
 inline void register_components(flecs::world& p_w) {
     p_w.component<Position>();
     p_w.component<Rotation>();
     p_w.component<Scale>();
+
+    p_w.component<SpawnRequest>();
+    p_w.component<EditorPlaced>();
+    p_w.component<Bullet>();
+    p_w.component<Life>();
+    p_w.component<TestInput>();
 }
 
+void register_systems(flecs::world &p_w); 
 
 }

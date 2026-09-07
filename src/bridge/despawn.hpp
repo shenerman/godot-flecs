@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  flecs_world.h                                                         */
+/*  bridge/despawn.hpp                                                    */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -28,33 +28,14 @@
 /**************************************************************************/
 
 #pragma once
+
 #include <flecs.h>
-#include <godot_cpp/classes/node.hpp>
-#include <optional>
 
-namespace godot {
+namespace bridge {
 
-// 逻辑世界的宿主。职责仅三件：
-// 创建/销毁 world、注册同步系统、每物理帧推进。
-// 配对（出生/绑定/解绑）不在这里——由 BridgeNode 自注册。
-class FlecsWorld : public Node {
-    GDCLASS(FlecsWorld, Node) // NOLINT
+void register_despawn(flecs::world &p_w);
 
-public:
-    FlecsWorld() = default;
-    ~FlecsWorld() override;
 
-    void _enter_tree() override;
-    void _physics_process(double p_delta) override;
+void despawn(flecs::entity p_product);
 
-    [[nodiscard]] flecs::world& flecs_world() { return *_world; }
-
-protected:
-    static void _bind_methods() {}
-
-private:
-    // optional 而非直接成员：Node 构造发生在编辑器实例化时，
-    std::optional<flecs::world> _world;
-};
-
-}
+}  // namespace bridge

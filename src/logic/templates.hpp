@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  bridge/register_types.cpp                                             */
+/*  logic/templates.hpp                                                   */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -27,49 +27,45 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#include "register_types.hpp"
+#pragma once
 
-#include <gdextension_interface.h>
-#include <godot_cpp/core/class_db.hpp>
-#include <godot_cpp/core/defs.hpp>
-#include <godot_cpp/godot.hpp>
+#include <flecs.h>
 
-#include "bridge/flecs_world.hpp"
-#include "bridge/bridge_node.hpp"
-#include "bridge/template_list.hpp"
+#include <array>
+#include <string_view>
 
-using namespace godot;
+namespace logic {
 
-namespace
-{
-	void initialize_gdextension_types(ModuleInitializationLevel p_level)
-	{
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-		GDREGISTER_CLASS(bridge::FlecsWorld)
-		GDREGISTER_CLASS(bridge::BridgeNode)
-		GDREGISTER_CLASS(bridge::TemplateEntry)
-		GDREGISTER_CLASS(bridge::TemplateList)
-	}
+// 装配函数签名：往一个空实例上挂逻辑组件。
+// 返回 false = 该种类的逻辑尚未设计（占位行），spawn 侧报错处置
+using BuildFn = bool (*)(flecs::entity);
 
-	void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-	}
-} // namespace
+// 装配函数即编译期身份：logic 内部若编译期就知道要哪种，直接调函数；
+// 表只服务数据驱动路径（编辑器来的字符串）
+bool build_bullet(flecs::entity p_e);
+bool build_enemy(flecs::entity p_e);
 
-extern "C"
-{
-	// Initialization
-	GDExtensionBool GDE_EXPORT godot_flecs_library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address, GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization)
-	{
-		GDExtensionBinding::InitObject init_obj(p_get_proc_address, p_library, r_initialization);
-		init_obj.register_initializer(initialize_gdextension_types);
-		init_obj.register_terminator(uninitialize_gdextension_types);
-		init_obj.set_minimum_library_initialization_level(MODULE_INITIALIZATION_LEVEL_SCENE);
+// 装载后的组件：只带载荷（装配）。名字不进 prefab——
+// 它只是查找键，装载期比对完就完成使命
+struct LogicTemplate {
+    BuildFn build;
+};
 
-		return init_obj.init();
-	}
-}
+// 查找表条目：键 + 载荷，名字只活在这里
+struct LookupEntry {
+    std::string_view name;
+    BuildFn          build;
+};
+
+// 唯一清单：加模板 = 写 build 函数 + 这里加一行。
+// 长度与条目数失配会在编译期报错（条目无默认构造，少编不过；多也编不过）
+inline constexpr std::array<LookupEntry, 2> TEMPLATES = {
+    LookupEntry{ "bullet", &build_bullet },
+    LookupEntry{ "enemy",  &build_enemy  },
+};
+
+// 名字 → 装配（装载期调用）。
+// nullptr = 设计师填了 logic 侧没有的名字
+BuildFn build_from_name(std::string_view p_name);
+
+} // namespace logic
