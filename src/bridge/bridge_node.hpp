@@ -29,28 +29,15 @@
 
 #pragma once
 
-#include <cstdint>
 #include <godot_cpp/classes/node3d.hpp>
 
 namespace bridge {
 
 class BridgeNode : public godot::Node3D {
-    GDCLASS(BridgeNode, godot::Node3D)  // NOLINT
+    GDCLASS(BridgeNode, godot::Node3D) // NOLINT
 
-public:
-    [[nodiscard]] bool is_bound() const;
-
-    void assign_entity(uint64_t p_entity_id);
-    
-    void _enter_tree() override;
-    void _exit_tree() override;
-    
 protected:
-
     static void _bind_methods();
-
-private:
-    uint64_t _entity_id = 0;
 };
 
-}  // namespace bridge
+} // namespace bridge

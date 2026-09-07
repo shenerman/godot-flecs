@@ -28,6 +28,7 @@
 /**************************************************************************/
 
 #pragma once
+
 #include <flecs.h>
 
 #include "logic/components.hpp"
@@ -35,21 +36,40 @@
 
 namespace bridge {
 
+// 查询目标从产品换成视图实体：NodeRef 挂在视图上，产品由 (ViewOf) 边指向。
+// 1:N 免费获得——同一产品被多个视图实体各持一条边，逐个刷位姿
 inline void register_sync_transform(flecs::world& p_world) {
-    p_world.system<const logic::Position, const logic::Rotation,
-             const logic::Scale, const NodeRef>("SyncTransform")
+    p_world.system<const NodeRef>("SyncTransform")
         .kind(flecs::PostUpdate)
-        .each([](flecs::entity, const logic::Position& p_pos, const logic::Rotation& p_rot,
-                 const logic::Scale& p_scale, const NodeRef& p_ref) {
+        .each([](flecs::entity p_view, const NodeRef &p_ref) {
             if (p_ref.node == nullptr) {
-                godot::UtilityFunctions::push_warning(
-                "Entity has no node assigned to it");
-                return; 
+                godot::UtilityFunctions::push_warning("View entity has no node assigned to it");
+                return;
             }
-            p_ref.node->set_position({p_pos.x, p_pos.y, p_pos.z});
-            p_ref.node->set_rotation({p_rot.x, p_rot.y, p_rot.z});
-            p_ref.node->set_scale({p_scale.x, p_scale.y, p_scale.z});
+
+            // 连接的真源是边：视图 ──(ViewOf)──> 产品。一次表内查找，O(1)
+            const flecs::entity product = p_view.target<ViewOf>();
+            if (!product.is_alive()) {
+                // 防御：绕过 despawn() 直接 destruct() 产品的外来路径。
+                // 正常路径下 ViewOf 的 (OnDeleteTarget, Delete) 策略会在
+                // 产品死亡时连带删除视图，走不到这里
+                return;
+            }
+
+            // v4：可选读取用 try_get（返回 const T*，缺席为 nullptr）。
+            // 千万别用 get<T>()——它返回 const T&，缺组件时是断言/未定义行为
+            const auto *pos = product.try_get<logic::Position>();
+            const auto *rot = product.try_get<logic::Rotation>();
+            const auto *scl = product.try_get<logic::Scale>();
+            if (pos == nullptr && rot == nullptr && scl == nullptr) {
+                return; // 产品尚未接位姿组件，等逻辑系统填
+            }
+
+            // NodeRef.node 已是 Node3D*，直写无需 cast
+            if (pos != nullptr) { p_ref.node->set_position({pos->x, pos->y, pos->z}); }
+            if (rot != nullptr) { p_ref.node->set_rotation({rot->x, rot->y, rot->z}); }
+            if (scl != nullptr) { p_ref.node->set_scale({scl->x, scl->y, scl->z}); }
         });
 }
 
-}
+} // namespace bridge

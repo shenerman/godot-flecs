@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  flecs_world.cpp                                                       */
+/*  bridge/flecs_world.cpp                                                */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -27,10 +27,13 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
+
 #include "bridge/flecs_world.hpp"
 
 #include <godot_cpp/classes/engine.hpp>
 
+#include "bridge/node_ref.hpp"
+#include "bridge/despawn.hpp"
 #include "bridge/spawner.hpp"
 #include "bridge/sync_transform.hpp"
 #include "bridge/template_registry.hpp"
@@ -49,24 +52,28 @@ void FlecsWorld::_enter_tree() {
     if (_world) {
         return;
     }
+    _world.emplace();
 
-    // Registry 解析在系统注册之前——写点报错，不静默
+    _world->component<bridge::ViewOf>()
+        .add(flecs::OnDeleteTarget, flecs::Delete);
+
     auto *registry = godot::Object::cast_to<bridge::TemplateRegistry>(
         get_node_or_null(_template_registry_path));
     if (registry == nullptr) {
         godot::UtilityFunctions::push_error(
             "FlecsWorld: template_registry_path 未配置或目标不是 TemplateRegistry，"
             "spawn 通道将不可用");
+    } else {
+        bridge::register_spawner(*_world, registry, this);
     }
 
-    _world.emplace();
     logic::register_components(*_world);
     bridge::register_sync_transform(*_world);
     logic::register_systems(*_world);
-    bridge::register_spawner(*_world, registry, this);
+    bridge::register_despawn(*_world);
 
     _world->set<logic::TestInput>({});
-    _world->get_mut<logic::TestInput>().storm = true;  
+    _world->get_mut<logic::TestInput>().storm = true;
 }
 
 void FlecsWorld::_physics_process(double p_delta) {
@@ -74,6 +81,22 @@ void FlecsWorld::_physics_process(double p_delta) {
         return;
     }
     _world->progress(static_cast<float>(p_delta));
+}
+
+void FlecsWorld::_notification(int p_what) {
+    if (p_what == NOTIFICATION_EXIT_TREE) {
+        if (!_world.has_value()) {
+            return;
+        }
+        // queue free
+        _world->each<bridge::NodeRef>(
+            [](flecs::entity, bridge::NodeRef &p_ref) {
+                if (p_ref.node != nullptr) {
+                    p_ref.node->call("free"); // 退出期同步清理
+                    p_ref.node = nullptr;
+                }
+            });
+    }
 }
 
 NodePath FlecsWorld::get_template_registry_path() const {
@@ -97,5 +120,4 @@ void FlecsWorld::_bind_methods() {
         "set_template_registry_path", "get_template_registry_path");
 }
 
-}  // namespace godot
-
+} // namespace godot

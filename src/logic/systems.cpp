@@ -35,6 +35,7 @@
 #include "components.hpp"
 #include <flecs.h>
 #include <random>
+#include <godot_cpp/variant/utility_functions.hpp>
 
 #include "bridge/despawn.hpp"
 
@@ -63,7 +64,7 @@ void register_systems(flecs::world &p_w) {
                 return;
             }
             
-            for (int k = 0; k < 1; ++k) {
+            for (int k = 0; k < 5; ++k) {
                 w.entity()
                     .set<SpawnRequest>({
                         .identity = BULLET_ID,
@@ -80,22 +81,32 @@ void register_systems(flecs::world &p_w) {
 
     // 寿命系统：销毁的唯一权威入口——经 bridge::despawn，
     // 先处置视图、后销毁实体，顺序即协议。
-p_w.system<Life>("expire")
-    .kind(flecs::OnUpdate)
-    .each([](flecs::iter &p_it, size_t p_i, Life &p_life) {
-        static int s_dbg = 0;
-        if (++s_dbg % 60 == 0) {   // 约每秒一次
-            godot::UtilityFunctions::print(
-                "expire alive: ", p_it.count(),
-                " delta: ", p_it.delta_time(),
-                " remaining: ", p_life.t);
-        }
-        p_life.t -= p_it.delta_time();
-        if (p_life.t <= 0.0F) {
-            bridge::despawn(p_it.entity(p_i));
-        }
-    });
+    p_w.system<Life>("expire")
+        .kind(flecs::OnUpdate)
+        .each([](flecs::iter &p_it, size_t p_i, Life &p_life) {
+            // 调试脚手架：只在帧内第一个实体上计数——static 若对所有
+            // 回调累加，频率会随实体数线性放大（storm 下每秒几十次）。
+            // 每帧最多一次 × 每 300 帧输出 ≈ 5 秒一条（物理帧 60Hz）
+            static int s_dbg_frames = 0;
+            const bool dbg_tick = (p_i == 0 && ++s_dbg_frames % 300 == 0);
 
+            p_life.t -= p_it.delta_time();
+            if (p_life.t <= 0.0F) {
+                if (dbg_tick) { // 快死的这一帧恰好是打印帧：一并说明
+                    godot::UtilityFunctions::print(
+                        "expire: entity despawned, alive was ", p_it.count());
+                }
+                bridge::despawn(p_it.entity(p_i));
+                return;
+            }
+
+            if (dbg_tick) {
+                godot::UtilityFunctions::print(
+                    "expire alive: ", p_it.count(),
+                    " delta: ", p_it.delta_time(),
+                    " remaining: ", p_life.t);
+            }
+        });
 }
 
 }  // namespace logic

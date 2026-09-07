@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  bridge/bridge_node.cpp                                                */
+/*  bridge/despawn.cpp                                                    */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -27,12 +27,28 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
+#include "bridge/despawn.hpp"
 
-#include "bridge/bridge_node.hpp"
+#include <flecs.h>
+#include <godot_cpp/classes/node.hpp>
+
+#include "bridge/node_ref.hpp"
 
 namespace bridge {
 
-void BridgeNode::_bind_methods() {
+void register_despawn(flecs::world &p_w) {
+    p_w.observer<NodeRef>()
+        .event(flecs::OnRemove)
+        .each([](flecs::iter & /*p_it*/, size_t /*p_i*/, NodeRef &p_ref) {
+            if (p_ref.node != nullptr) {
+                p_ref.node->queue_free();
+                p_ref.node = nullptr; // 防御：杜绝二次 queue_free
+            }
+        });
+}
+
+void despawn(flecs::entity p_product) {
+    p_product.destruct();
 }
 
 } // namespace bridge

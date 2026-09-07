@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  flecs_world.h                                                         */
+/*  bridge/flecs_world.h                                                  */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -30,16 +30,16 @@
 #pragma once
 
 #include <flecs.h>
-
 #include <godot_cpp/classes/node.hpp>
 
 namespace godot {
 
-// 逻辑世界的宿主。职责仅四件：
-// 创建/销毁 world、解析模板注册表并注册全部系统、每物理帧推进。
-// 配对（出生/绑定/解绑）不在这里——由 BridgeNode 自注册。
+// 逻辑世界的宿主。职责仅四件：创建/销毁 world、注册关系清理策略、
+// 解析模板注册表并注册全部系统、每物理帧推进。
+// 节点的出生与回收不在本类——视图实体由 spawner 创建，
+// 节点回收统一走 OnRemove<NodeRef> hook（despawn.cpp）
 class FlecsWorld : public Node {
-    GDCLASS(FlecsWorld, Node)  // NOLINT
+    GDCLASS(FlecsWorld, Node) // NOLINT
 
 public:
     FlecsWorld() = default;
@@ -47,6 +47,7 @@ public:
 
     void _enter_tree() override;
     void _physics_process(double p_delta) override;
+    void _notification(int p_what);
 
     // 编辑器接线：指向场景里的 TemplateRegistry 节点
     [[nodiscard]] NodePath get_template_registry_path() const;
@@ -62,8 +63,7 @@ private:
     // optional 而非直接成员：Node 构造发生在编辑器实例化时，
     // world 只应在运行时创建
     std::optional<flecs::world> _world;
-
     NodePath _template_registry_path;
 };
 
-}  // namespace godot
+} // namespace godot
