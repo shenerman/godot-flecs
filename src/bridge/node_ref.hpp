@@ -32,10 +32,6 @@
 #include <flecs.h>
 #include <godot_cpp/classes/node3d.hpp>
 
-namespace godot {
-class Node;
-}
-
 namespace bridge {
 
 // 关系 tag：视图实体 ──(ViewOf)──> 产品实体。
