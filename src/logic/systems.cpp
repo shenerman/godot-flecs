@@ -27,17 +27,16 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#include "bridge/despawn.hpp"
+#include "logic/components.hpp"
+#include "logic/input.hpp"
 
 #include <godot_cpp/variant/utility_functions.hpp>
 
+#include <cmath>
 #include <flecs.h>
 #include <random>
 
-#include "components.hpp"
-
 namespace logic {
-
 namespace {
 
 float rnd(float p_lo, float p_hi) {
@@ -50,54 +49,58 @@ float rnd(float p_lo, float p_hi) {
 } // namespace
 
 void register_systems(flecs::world &p_w) {
-	// 测试 T5：子弹流。请求实体只挂 SpawnRequest——
-	// 标签、寿命等模板数据由 spawner 按模板句柄配给真正的子弹实体。
+	p_w.system<const MoveSpeed, Position>("move_by_input")
+			.kind(flecs::OnUpdate)
+			.each([](flecs::iter &p_it, size_t /*p_i*/,
+						  const MoveSpeed &p_speed, Position &p_pos) {
+				if (!p_it.world().has<InputState>()) {
+					return;
+				}
+				const auto &in = p_it.world().get<InputState>();
+
+				const float len = std::sqrt(
+						(in.move_x * in.move_x) + (in.move_y * in.move_y));
+				if (len <= 0.0001F) {
+					return; // 没推摇杆，省掉归一化的除零
+				}
+				const float nx = in.move_x / std::max(len, 1.0F);
+				const float ny = in.move_y / std::max(len, 1.0F);
+				p_pos.x += (nx * p_speed.value) * p_it.delta_time();
+				p_pos.z += (ny * p_speed.value) * p_it.delta_time();
+			});
+
 	p_w.system<const TestInput>("test_spawn_bullets")
 			.kind(flecs::OnUpdate)
 			.run([](flecs::iter &p_it) {
 				flecs::world w = p_it.world();
-
 				if (!w.has<TestInput>() || !w.get<TestInput>().storm) {
 					return;
 				}
-
-				// 模板句柄：按名字查装载期建好的 prefab 实体。
-				// 名字 = template_list.tres 里 bullet 那条的 template_name，
-				// 与 load_templates 的 set_name() 同源。风暴系统只认名字，
-				// 具体场景/组件全在清单里——换弹种只改 .tres 不改代码
 				flecs::entity tmpl = w.lookup("bullet");
 				if (!tmpl.is_valid()) {
-					// 查不到是配置错误，报一次即可——storm 每帧进来，
-					// 不拦会刷屏。置回 false 等人修好清单再开
-					godot::UtilityFunctions::push_error(
-							"test_spawn_bullets: 模板 'bullet' 未装载，"
-							"检查 template_list.tres");
 					w.get_mut<TestInput>().storm = false;
 					return;
 				}
-
 				for (int k = 0; k < 30; ++k) {
 					w.entity()
 							.set<SpawnRequest>({
 									.identity = tmpl,
-									.position = Position{
-											rnd(-5.0F, 5.0F),
-											rnd(2.0F, 6.0F),
-											rnd(-5.0F, 5.0F) },
+									.position =
+											Position{ rnd(-5.0F, 5.0F),
+													rnd(2.0F, 6.0F),
+													rnd(-5.0F, 5.0F) },
 									.rotation = {},
 									.scale = {},
 							});
 				}
 			});
 
-	// 寿命系统：销毁的唯一权威入口——经 bridge::despawn，
-	// 先处置视图、后销毁实体，顺序即协议。
 	p_w.system<Life>("expire")
 			.kind(flecs::OnUpdate)
 			.each([](flecs::iter &p_it, size_t p_i, Life &p_life) {
 				p_life.t -= p_it.delta_time();
 				if (p_life.t <= 0.0F) {
-					bridge::despawn(p_it.entity(p_i));
+					p_it.entity(p_i).add<Despawn>();
 				}
 			});
 }

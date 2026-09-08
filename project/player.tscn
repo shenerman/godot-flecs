@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://bbt1ap83n06a4"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_sh265"]
+
+[node name="Player" type="BridgeNode"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_sh265")

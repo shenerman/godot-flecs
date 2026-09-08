@@ -42,7 +42,7 @@ using BuildFn = bool (*)(flecs::entity);
 // 装配函数即编译期身份：logic 内部若编译期就知道要哪种，直接调函数；
 // 表只服务数据驱动路径（编辑器来的字符串）
 bool build_bullet(flecs::entity p_e);
-bool build_enemy(flecs::entity p_e);
+bool build_player(flecs::entity p_e);
 
 // 装载后的组件：只带载荷（装配）。名字不进 prefab——
 // 它只是查找键，装载期比对完就完成使命
@@ -60,7 +60,7 @@ struct LookupEntry {
 // 长度与条目数失配会在编译期报错（条目无默认构造，少编不过；多也编不过）
 inline constexpr std::array<LookupEntry, 2> TEMPLATES = {
 	LookupEntry{ "bullet", &build_bullet },
-	LookupEntry{ "enemy", &build_enemy },
+	LookupEntry{ "player", &build_player },
 };
 
 // 名字 → 装配（装载期调用）。

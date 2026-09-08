@@ -28,9 +28,11 @@
 /**************************************************************************/
 
 /* bridge/flecs_world.cpp */
+
 #include "bridge/flecs_world.hpp"
 
 #include "bridge/despawn.hpp"
+#include "bridge/input.hpp"
 #include "bridge/node_ref.hpp"
 #include "bridge/spawner.hpp"
 #include "bridge/sync_transform.hpp"
@@ -39,7 +41,7 @@
 #include "logic/components.hpp"
 
 #include <godot_cpp/classes/engine.hpp>
-
+#include <godot_cpp/variant/utility_functions.hpp>
 namespace bridge {
 
 FlecsWorld::~FlecsWorld() {
@@ -53,9 +55,7 @@ void FlecsWorld::_enter_tree() {
 	if (_world) {
 		return;
 	}
-
 	_world.emplace();
-
 	_world->component<ViewOf>()
 			.add(flecs::OnDeleteTarget, flecs::Delete);
 
@@ -67,16 +67,27 @@ void FlecsWorld::_enter_tree() {
 	logic::register_components(*_world);
 	register_sync_transform(*_world);
 	logic::register_systems(*_world);
+
 	register_despawn(*_world);
+	register_input(*_world); // 校验动作 + 预置 InputState 单例
 
 	_world->set<logic::TestInput>({});
 	_world->get_mut<logic::TestInput>().storm = true;
+
+	flecs::entity player_tmpl = _world->lookup("player");
+	if (player_tmpl.is_valid()) {
+		_world->entity().set<logic::SpawnRequest>({ .identity = player_tmpl });
+	} else {
+		godot::UtilityFunctions::push_error(
+				"template_list 中缺少 'player' 模板——输入无处生效");
+	}
 }
 
 void FlecsWorld::_physics_process(double p_delta) {
 	if (godot::Engine::get_singleton()->is_editor_hint() || !_world) {
 		return;
 	}
+	poll_input(*_world); // 本帧输入喂给本帧模拟，必须在 progress 前
 	_world->progress(static_cast<float>(p_delta));
 }
 
