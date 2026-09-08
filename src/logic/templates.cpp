@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  bridge/register_types.cpp                                             */
+/*  logic/templates.cpp                                                   */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -27,49 +27,33 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#include "register_types.hpp"
 
-#include <gdextension_interface.h>
-#include <godot_cpp/core/class_db.hpp>
-#include <godot_cpp/core/defs.hpp>
-#include <godot_cpp/godot.hpp>
 
-#include "bridge/flecs_world.hpp"
-#include "bridge/bridge_node.hpp"
-#include "bridge/template_list.hpp"
+#include "logic/templates.hpp"
+#include "components.hpp"
 
-using namespace godot;
+namespace logic {
 
-namespace
-{
-	void initialize_gdextension_types(ModuleInitializationLevel p_level)
-	{
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-		GDREGISTER_CLASS(bridge::FlecsWorld)
-		GDREGISTER_CLASS(bridge::BridgeNode)
-		GDREGISTER_CLASS(bridge::TemplateEntry)
-		GDREGISTER_CLASS(bridge::TemplateList)
-	}
+// ── 各种类的装配函数。新增种类 = 写一个 build_<名字> + TEMPLATES 加一行 ──
 
-	void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-	}
-} // namespace
-
-extern "C"
-{
-	// Initialization
-	GDExtensionBool GDE_EXPORT godot_flecs_library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address, GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization)
-	{
-		GDExtensionBinding::InitObject init_obj(p_get_proc_address, p_library, r_initialization);
-		init_obj.register_initializer(initialize_gdextension_types);
-		init_obj.register_terminator(uninitialize_gdextension_types);
-		init_obj.set_minimum_library_initialization_level(MODULE_INITIALIZATION_LEVEL_SCENE);
-
-		return init_obj.init();
-	}
+bool build_bullet(flecs::entity p_e) {
+    p_e.add<Bullet>()
+        .set<Life>({2.0F});
+    return true;
 }
+
+bool build_enemy(flecs::entity /*p_e*/) {
+    // 敌人逻辑尚未设计——占位行，spawn 到它会报错并处置请求
+    return false;
+}
+
+BuildFn build_from_name(std::string_view p_name) {
+    for (const LookupEntry &entry : TEMPLATES) {
+        if (entry.name == p_name) {
+            return entry.build;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace logic

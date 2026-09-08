@@ -3,6 +3,7 @@
 .godot/
 
 # Ignore library files but not the gdextension file
+/build/**
 /bin/**
 /project/bin/**
 !project/bin/*.gdextension
@@ -15,9 +16,6 @@ custom.py
 
 # Ignore generated compile_commands.json
 compile_commands.json
-
-# Ignore files generated for documentation
-/src/gen
 
 # Binaries
 *.o

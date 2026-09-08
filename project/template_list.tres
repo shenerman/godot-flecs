@@ -1,0 +1,10 @@
+[gd_resource type="TemplateList" load_steps=3 format=3 uid="uid://dxysx8av4sp3f"]
+
+[ext_resource type="PackedScene" uid="uid://dhsga3lhrodrv" path="res://bullet.tscn" id="1_jqb13"]
+
+[sub_resource type="TemplateEntry" id="TemplateEntry_tiali"]
+template_name = "bullet"
+scene = ExtResource("1_jqb13")
+
+[resource]
+entries = Array[TemplateEntry]([SubResource("TemplateEntry_tiali")])

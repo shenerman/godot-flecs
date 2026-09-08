@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  bridge/register_types.cpp                                             */
+/*  bridge/node_ref.hpp                                                   */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -27,49 +27,26 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#include "register_types.hpp"
+#pragma once
 
-#include <gdextension_interface.h>
-#include <godot_cpp/core/class_db.hpp>
-#include <godot_cpp/core/defs.hpp>
-#include <godot_cpp/godot.hpp>
+#include <flecs.h>
+#include <godot_cpp/classes/node3d.hpp>
 
-#include "bridge/flecs_world.hpp"
-#include "bridge/bridge_node.hpp"
-#include "bridge/template_list.hpp"
+namespace bridge {
 
-using namespace godot;
+// 关系 tag：视图实体 ──(ViewOf)──> 产品实体。
+// 边挂在视图上、指向产品（"此视图是某产品的视图"），即：
+//     view.add<ViewOf>(product);
+// sync 热路径用 view.target<ViewOf>() 直读边，O(1)；
+// 产品死亡由 ViewOf 的 (OnDeleteTarget, Delete) 清理策略连带删除
+// 持边视图——无级联、无收割扫描、无回指针
+struct ViewOf {};
 
-namespace
-{
-	void initialize_gdextension_types(ModuleInitializationLevel p_level)
-	{
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-		GDREGISTER_CLASS(bridge::FlecsWorld)
-		GDREGISTER_CLASS(bridge::BridgeNode)
-		GDREGISTER_CLASS(bridge::TemplateEntry)
-		GDREGISTER_CLASS(bridge::TemplateList)
-	}
+// 挂在视图实体上：一行记录 = 一个视图。
+// 连接关系的唯一真源是那条 (ViewOf, product) 边，本组件不再冗余存储
+// 产品句柄（1:N 时同一边型可挂任意多个视图实体）
+struct NodeRef {
+    godot::Node3D *node = nullptr; 
+};
 
-	void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
-		if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-			return;
-		}
-	}
-} // namespace
-
-extern "C"
-{
-	// Initialization
-	GDExtensionBool GDE_EXPORT godot_flecs_library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address, GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization)
-	{
-		GDExtensionBinding::InitObject init_obj(p_get_proc_address, p_library, r_initialization);
-		init_obj.register_initializer(initialize_gdextension_types);
-		init_obj.register_terminator(uninitialize_gdextension_types);
-		init_obj.set_minimum_library_initialization_level(MODULE_INITIALIZATION_LEVEL_SCENE);
-
-		return init_obj.init();
-	}
-}
+} // namespace bridge

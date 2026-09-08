@@ -55,13 +55,16 @@ def print_error(*values: object) -> None:
 
 # Get the project folder name ahead of time  # [MODIFIED] 参考 Godot：模块顶层定位工程根
 base_folder = Path(__file__).resolve().parent
+BUILD_DIR_NAME = "build"
 
 
 def redirect_emitter(target, source, env):
     """
-    Emitter to automatically redirect object build files to the `bin/obj` directory,
-    retaining subfolder structure. If `redirect_build_objects` is `False`, or a file
-    is being written directly into `bin`, this emitter does nothing.
+    Emitter to automatically redirect object build files to the `build/` directory,
+    retaining subfolder structure (src/foo.cpp -> build/src/foo.obj).
+    If `redirect_build_objects` is `False`, or the target already lives under
+    `build/` (e.g. flecs objects declared explicitly in their SConscript),
+    this emitter does nothing — making it idempotent.
     """
     if not env["redirect_build_objects"]:
         return target, source
@@ -69,15 +72,21 @@ def redirect_emitter(target, source, env):
     redirected_targets = []
     for item in target:
         path = Path(item.get_abspath()).resolve()
-
-        # Directly written final artifacts (e.g. the .dll/.so) are not redirected,
-        # mirroring the `bin` exemption branch in Godot's redirect_emitter.
-        if path.parent == base_folder / "bin":
-            pass
-        elif base_folder in path.parents:
-            # src/example_class.cpp -> bin/obj/src/example_class.obj
-            item = env.File(f"#bin/obj/{path.relative_to(base_folder).as_posix()}")
-        else:
+        try:
+            rel = path.relative_to(base_folder)
+        except ValueError:
+            # 项目外路径：无法安全重写，保留原样并提示
             print_warning(f'Failed to redirect "{path}"')
+            redirected_targets.append(item)
+            continue
+
+        if rel.parts[0] == BUILD_DIR_NAME:
+            # [MODIFIED] 幂等保护：已位于 build/ 下的显式 target（如 flecs）不动，
+            # 避免 build/obj/build/... 这类二次重定向
+            pass
+        else:
+            # src/example_class.cpp -> build/src/example_class.obj
+            item = env.File(f"#build/{rel.as_posix()}")
         redirected_targets.append(item)
     return redirected_targets, source
+
