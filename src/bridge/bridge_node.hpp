@@ -34,10 +34,10 @@
 namespace bridge {
 
 class BridgeNode : public godot::Node3D {
-    GDCLASS(BridgeNode, godot::Node3D) // NOLINT
+	GDCLASS(BridgeNode, godot::Node3D) // NOLINT
 
 protected:
-    static void _bind_methods();
+	static void _bind_methods();
 };
 
 } // namespace bridge

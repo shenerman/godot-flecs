@@ -30,39 +30,38 @@
 /* bridge/flecs_world.hpp */
 #pragma once
 
-#include <flecs.h>
-
-#include <optional>
+#include "bridge/template_list.hpp"
 
 #include <godot_cpp/classes/node.hpp>
 
-#include "bridge/template_list.hpp"
+#include <flecs.h>
+#include <optional>
 
 namespace bridge {
 
 class FlecsWorld : public godot::Node {
-    GDCLASS(FlecsWorld, godot::Node) // NOLINT
+	GDCLASS(FlecsWorld, godot::Node) // NOLINT
 
 public:
-    FlecsWorld() = default;
-    ~FlecsWorld() override;
+	FlecsWorld() = default;
+	~FlecsWorld() override;
 
-    void _enter_tree() override;
-    void _physics_process(double p_delta) override;
-    void _notification(int p_what);
+	void _enter_tree() override;
+	void _physics_process(double p_delta) override;
+	void _notification(int p_what);
 
-    [[nodiscard]] godot::Ref<TemplateList> get_template_list() const;
-    void set_template_list(const godot::Ref<TemplateList> &p_list);
+	[[nodiscard]] godot::Ref<TemplateList> get_template_list() const;
+	void set_template_list(const godot::Ref<TemplateList> &p_list);
 
-    [[nodiscard]] bool has_world() const { return _world.has_value(); }
-    [[nodiscard]] flecs::world &flecs_world() { return *_world; }
+	[[nodiscard]] bool has_world() const { return _world.has_value(); }
+	[[nodiscard]] flecs::world &flecs_world() { return *_world; }
 
 protected:
-    static void _bind_methods();
+	static void _bind_methods();
 
 private:
-    std::optional<flecs::world> _world;
-    godot::Ref<TemplateList> _template_list;
+	std::optional<flecs::world> _world;
+	godot::Ref<TemplateList> _template_list;
 };
 
 } // namespace bridge

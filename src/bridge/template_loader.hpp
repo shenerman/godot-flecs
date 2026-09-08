@@ -28,9 +28,9 @@
 /**************************************************************************/
 #pragma once
 
-#include <flecs.h>
-
 #include "bridge/template_list.hpp"
+
+#include <flecs.h>
 
 namespace bridge {
 
@@ -38,6 +38,6 @@ namespace bridge {
 // 步骤：查重 → 验场景 → 建 prefab + ViewTemplate → 解析 LogicKind → 验牌。
 // 任何一步失败都是启动期写点报错并跳过该条，不静默、不拖到首次 spawn
 void load_templates(flecs::world &p_w,
-                    const godot::Ref<bridge::TemplateList> &p_list);
+		const godot::Ref<bridge::TemplateList> &p_list);
 
-} // namespace logic
+} //namespace bridge

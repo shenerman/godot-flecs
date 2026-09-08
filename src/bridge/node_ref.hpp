@@ -29,8 +29,9 @@
 
 #pragma once
 
-#include <flecs.h>
 #include <godot_cpp/classes/node3d.hpp>
+
+#include <flecs.h>
 
 namespace bridge {
 
@@ -46,7 +47,7 @@ struct ViewOf {};
 // 连接关系的唯一真源是那条 (ViewOf, product) 边，本组件不再冗余存储
 // 产品句柄（1:N 时同一边型可挂任意多个视图实体）
 struct NodeRef {
-    godot::Node3D *node = nullptr; 
+	godot::Node3D *node = nullptr;
 };
 
 } // namespace bridge

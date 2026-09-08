@@ -35,7 +35,6 @@ namespace bridge {
 
 void register_despawn(flecs::world &p_w);
 
-
 void despawn(flecs::entity p_product);
 
-}  // namespace bridge
+} // namespace bridge

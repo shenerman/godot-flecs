@@ -29,9 +29,8 @@
 
 #pragma once
 
-#include <flecs.h>
-
 #include <array>
+#include <flecs.h>
 #include <string_view>
 
 namespace logic {
@@ -48,20 +47,20 @@ bool build_enemy(flecs::entity p_e);
 // 装载后的组件：只带载荷（装配）。名字不进 prefab——
 // 它只是查找键，装载期比对完就完成使命
 struct LogicTemplate {
-    BuildFn build;
+	BuildFn build;
 };
 
 // 查找表条目：键 + 载荷，名字只活在这里
 struct LookupEntry {
-    std::string_view name;
-    BuildFn          build;
+	std::string_view name;
+	BuildFn build;
 };
 
 // 唯一清单：加模板 = 写 build 函数 + 这里加一行。
 // 长度与条目数失配会在编译期报错（条目无默认构造，少编不过；多也编不过）
 inline constexpr std::array<LookupEntry, 2> TEMPLATES = {
-    LookupEntry{ "bullet", &build_bullet },
-    LookupEntry{ "enemy",  &build_enemy  },
+	LookupEntry{ "bullet", &build_bullet },
+	LookupEntry{ "enemy", &build_enemy },
 };
 
 // 名字 → 装配（装载期调用）。
