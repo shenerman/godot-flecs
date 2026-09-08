@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# 检查暂存的源文件格式；不合格 → 放弃 commit，提示跑 format 脚本
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR -- 'src/*.hpp' 'src/*.cpp')
+[ -z "$STAGED" ] && exit 0
+
+FAILED=0
+while IFS= read -r f; do
+    if ! git show ":$f" | clang-format --dry-run --Werror "$f" >/dev/null 2>&1; then
+        echo "✗ 格式不合格: $f"
+        FAILED=1
+    fi
+done <<< "$STAGED"
+
+if [ "$FAILED" -eq 1 ]; then
+    cat <<'EOF'
+
+────────────────────────────────────────────
+commit 被拒绝：以上文件未通过 clang-format。
+
+修复：
+    scripts/format.sh        (Windows: scripts\format.ps1)
+    git add -u
+    git commit
+────────────────────────────────────────────
+EOF
+    exit 1
+fi
