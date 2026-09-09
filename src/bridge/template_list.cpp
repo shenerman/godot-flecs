@@ -29,6 +29,8 @@
 
 #include "bridge/template_list.hpp"
 
+#include "logic/templates.hpp"
+
 namespace bridge {
 
 // ---- TemplateEntry ----
@@ -63,8 +65,21 @@ void TemplateEntry::_bind_methods() {
 			godot::D_METHOD("get_scene"),
 			&TemplateEntry::get_scene);
 
+	// 下拉框选项即 logic::TEMPLATES 的名字字段——同一个数组、同一批字符串，
+	// build_from_name 查的也是它。没有副本，不存在失配。
+	// _bind_methods 模块注册时只执行一次，循环开销为零
+	godot::String hint;
+	for (const logic::LookupEntry &e : logic::TEMPLATES) {
+		if (!hint.is_empty()) {
+			hint += ",";
+		}
+		hint += godot::String::utf8(
+				e.name.data(), static_cast<int>(e.name.size()));
+	}
+
 	ADD_PROPERTY(
-			godot::PropertyInfo(godot::Variant::STRING, "template_name"),
+			godot::PropertyInfo(godot::Variant::STRING, "template_name",
+					godot::PropertyHint::PROPERTY_HINT_ENUM, hint),
 			"set_template_name", "get_template_name");
 	ADD_PROPERTY(
 			godot::PropertyInfo(godot::Variant::OBJECT, "scene",

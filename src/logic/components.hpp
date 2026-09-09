@@ -29,8 +29,6 @@
 
 #pragma once
 
-#include <optional>
-
 #include "flecs.h"
 
 namespace logic {
@@ -47,15 +45,19 @@ struct Scale {
 
 struct SpawnRequest {
 	flecs::entity identity;
-	std::optional<Position> position;
-	std::optional<Rotation> rotation;
-	std::optional<Scale> scale;
+	Position position{ .x = 0.0F, .y = 0.0F, .z = 0.0F };
+	Rotation rotation{ .x = 0.0F, .y = 0.0F, .z = 0.0F };
+	Scale scale{ .x = 1.0F, .y = 1.0F, .z = 1.0F };
 };
+struct Despawn {};
 
 struct Bullet {};
-
 struct Life {
 	float t{};
+};
+
+struct MoveSpeed {
+	float value = 5.0F;
 };
 
 struct TestInput {
@@ -66,13 +68,14 @@ inline void register_components(flecs::world &p_w) {
 	p_w.component<Position>();
 	p_w.component<Rotation>();
 	p_w.component<Scale>();
-
 	p_w.component<SpawnRequest>();
 	p_w.component<Bullet>();
 	p_w.component<Life>();
+	p_w.component<MoveSpeed>();
+	p_w.component<Despawn>();
 	p_w.component<TestInput>();
 }
 
 void register_systems(flecs::world &p_w);
 
-} //namespace logic
+} // namespace logic

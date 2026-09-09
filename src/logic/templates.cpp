@@ -29,7 +29,7 @@
 
 #include "logic/templates.hpp"
 
-#include "components.hpp"
+#include "logic/components.hpp"
 
 namespace logic {
 
@@ -41,9 +41,9 @@ bool build_bullet(flecs::entity p_e) {
 	return true;
 }
 
-bool build_enemy(flecs::entity /*p_e*/) {
-	// 敌人逻辑尚未设计——占位行，spawn 到它会报错并处置请求
-	return false;
+bool build_player(flecs::entity p_e) {
+	p_e.set<MoveSpeed>({ .value = 5.0F });
+	return true;
 }
 
 BuildFn build_from_name(std::string_view p_name) {

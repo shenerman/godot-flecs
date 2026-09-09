@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  bridge/flecs_world.hpp                                                */
+/*  bridge/input.hpp                                                      */
 /**************************************************************************/
 /*                        This file is part of:                           */
 /*                             GODOT-FLECS                                */
@@ -27,41 +27,54 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-/* bridge/flecs_world.hpp */
-#pragma once
+#include "bridge/input.hpp"
 
-#include "bridge/template_list.hpp"
+#include "logic/input.hpp"
 
-#include <godot_cpp/classes/node.hpp>
+#include <godot_cpp/classes/input.hpp>
+#include <godot_cpp/classes/input_map.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
 
-#include <flecs.h>
-#include <optional>
+#include <array>
+
+#include "flecs.h"
 
 namespace bridge {
+namespace {
 
-class FlecsWorld : public godot::Node {
-	GDCLASS(FlecsWorld, godot::Node) // NOLINT
-
-public:
-	FlecsWorld() = default;
-	~FlecsWorld() override;
-
-	void _enter_tree() override;
-	void _physics_process(double p_delta) override;
-	void _notification(int p_what);
-
-	[[nodiscard]] godot::Ref<TemplateList> get_template_list() const;
-	void set_template_list(const godot::Ref<TemplateList> &p_list);
-
-	[[nodiscard]] bool has_world() const { return _world.has_value(); }
-	[[nodiscard]] flecs::world &flecs_world() { return *_world; }
-
-protected:
-	static void _bind_methods();
-
-private:
-	std::optional<flecs::world> _world;
-	godot::Ref<TemplateList> _template_list;
+// 动作名集中在此——Input Map 里的配置必须与之一致
+constexpr std::array<const char *, 4> MOVE_ACTIONS{
+	"move_left",
+	"move_right",
+	"move_down",
+	"move_up",
 };
+
+} // namespace
+
+void register_input(flecs::world &p_w) {
+	// 动作缺失是配置错误：启动期报一次，不在运行期刷屏
+	//（沿用 storm 巡检的"配置错误启动期报"模式）
+	for (const char *action : MOVE_ACTIONS) {
+		if (!godot::InputMap::get_singleton()->has_action(action)) {
+			godot::UtilityFunctions::push_error(godot::vformat(
+					"input: Input Map 缺少动作 '%s'——移动输入将失效",
+					godot::String(action)));
+		}
+	}
+
+	// 单例预置：move_by_input 的 has<InputState>() 检查从此恒真，
+	// headless 测试直接改写此单例即可驱动移动
+	p_w.set<logic::InputState>({});
+}
+
+void poll_input(flecs::world &p_w) {
+	// get_vector(负x, 正x, 负y, 正y)：此处约定"上 = +y → 逻辑 +z"，
+	// 想反转前后方向就对调 move_down / move_up 的位置
+	const godot::Vector2 v = godot::Input::get_singleton()->get_vector(
+			"move_left", "move_right", "move_down", "move_up");
+
+	p_w.set<logic::InputState>({ .move_x = v.x, .move_y = v.y });
+}
 
 } // namespace bridge

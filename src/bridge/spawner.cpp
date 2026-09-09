@@ -89,20 +89,15 @@ void register_spawner(flecs::world &p_w, godot::Node *p_view_host) {
 					return;
 				}
 
-				// 4. 产品的位姿组件：来自请求，optional 缺席 = 产品无此组件，
-				//    sync_transform 会跳过缺席项——"场景出厂值"契约不变
-				if (p_req.position) {
-					e.set<logic::Position>(
-							{ p_req.position->x, p_req.position->y, p_req.position->z });
-				}
-				if (p_req.rotation) {
-					e.set<logic::Rotation>(
-							{ p_req.rotation->x, p_req.rotation->y, p_req.rotation->z });
-				}
-				if (p_req.scale) {
-					e.set<logic::Scale>(
-							{ p_req.scale->x, p_req.scale->y, p_req.scale->z });
-				}
+				// 4. 产品的位姿组件：请求必带初始值（结构体有默认值），
+				//    godot 侧生成的产品一律拥有位姿——
+				//    move/sync 系统的最低要求，不再有"缺席"分支
+				e.set<logic::Position>(
+						{ p_req.position.x, p_req.position.y, p_req.position.z });
+				e.set<logic::Rotation>(
+						{ p_req.rotation.x, p_req.rotation.y, p_req.rotation.z });
+				e.set<logic::Scale>(
+						{ p_req.scale.x, p_req.scale.y, p_req.scale.z });
 
 				// 5. 视图实体：一行记录 = 一个视图，只扛 NodeRef，不碰逻辑。
 				//    边挂在视图上、指向产品——连接的唯一真源（1:N 时重复本段即可）
@@ -112,18 +107,13 @@ void register_spawner(flecs::world &p_w, godot::Node *p_view_host) {
 
 				// 6. 出生帧位姿：sync 在 PostUpdate 才跑，出生帧手动对齐一次
 				//    （覆盖位姿仍按 optional 缺席不动）
-				if (p_req.position) {
-					view->set_position(
-							{ p_req.position->x, p_req.position->y, p_req.position->z });
-				}
-				if (p_req.rotation) {
-					view->set_rotation(
-							{ p_req.rotation->x, p_req.rotation->y, p_req.rotation->z });
-				}
-				if (p_req.scale) {
-					view->set_scale(
-							{ p_req.scale->x, p_req.scale->y, p_req.scale->z });
-				}
+				view->set_position(
+						{ p_req.position.x, p_req.position.y, p_req.position.z });
+				view->set_rotation(
+						{ p_req.rotation.x, p_req.rotation.y, p_req.rotation.z });
+
+				view->set_scale(
+						{ p_req.scale.x, p_req.scale.y, p_req.scale.z });
 
 				// 7. 入树。BridgeNode 不再认识任何实体——验牌在 add_child 的
 				//    _enter_tree 里照旧发生，实体身份由 pair 边承载
